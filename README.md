@@ -13,6 +13,10 @@ HBase Resources:
 
 [Spark 3.3 w/ Hadoop 3](https://dlcdn.apache.org/spark/spark-3.3.0/spark-3.3.0-bin-hadoop3.tgz)
 
+## Sample Data
+
+Table `tsdb`: `s3://tabular-lumin/data/tsdb/d9b23544e7b34326a98410af7c69cf2f`
+
 ## Spark Setup
 
 1. Download Spark from the link above

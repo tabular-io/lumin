@@ -50,6 +50,10 @@ __pycache__
 .pytest_cache
 venv
 
+# Ignore binaries
+binaries
+data
+
 .vscode
 
 .local

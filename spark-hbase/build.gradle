@@ -1,0 +1,28 @@
+plugins {
+  id 'java-library'
+  id 'com.github.johnrengelman.shadow' version '7.1.2'
+}
+
+repositories {
+  mavenLocal()
+  mavenCentral()
+}
+
+compileJava {
+  options.release.set(8)
+}
+
+dependencies {
+  implementation('org.apache.hbase:hbase-mapreduce:2.4.10') {
+    exclude group: 'org.apache.hadoop'
+    exclude group: 'io.netty'
+  }
+  //implementation 'io.airlift:aircompressor:0.21'
+
+  compileOnly 'org.apache.hadoop:hadoop-common:2.10.1'
+}
+
+shadowJar {
+  relocate 'org.apache.commons', 'lumin.org.apache.commons'
+}
+

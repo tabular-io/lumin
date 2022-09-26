@@ -21,3 +21,35 @@
 
 # virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
 hs_err_pid*
+
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+# Ignore Gradle project-specific cache directory
+.gradle
+
+# Ignore Gradle build output directory
+build
+
+# Ignore IntelliJ files
+.idea
+.idea_modules/
+*.ipr
+*.iws
+*.iml
+.run/
+
+# Mac
+.DS_Store
+
+# python
+__pycache__
+*.py[cod]
+.pytest_cache
+venv
+
+.vscode
+
+.local

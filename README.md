@@ -7,6 +7,7 @@ OpenTSDB Resources:
 [HBase Schema](http://opentsdb.net/docs/build/html/user_guide/backends/hbase.html)
 
 HBase Resources:
+
 [CellUtil](https://hbase.apache.org/apidocs/org/apache/hadoop/hbase/CellUtil.html)
 
 ## Requirements

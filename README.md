@@ -28,6 +28,9 @@ Table `tsdb`: `s3://tabular-lumin/data/tsdb/d9b23544e7b34326a98410af7c69cf2f`
 ## Spark Shell Exampless
 
 ```scala
+import java.time.Instant
+import java.util.Date
+
 import org.apache.hadoop.hbase.mapreduce.HFileInputFormat
 import org.apache.hadoop.hbase.Cell
 import org.apache.hadoop.io.NullWritable
@@ -44,10 +47,16 @@ Accessing the row bytes:
 var row = cells.map(_.getRowArray()).take(1)(0) 
 
 // Access the timestamp bytes from the row array (see above OpenTSDB row format)
+var salt = new Array[Byte](4)
+System.arraycopy(row, 0, salt, 0, 4)
+
+var muid = new Array[Byte](3)
+System.arraycopy(row, 4, muid, 0, 3)
+
 var ts = new Array[Byte](8)
 System.arraycopy(row, 7, ts, 4, 4)
 Longs.fromByteArray(ts)
-
 // res114: Long = 1617552000 <- Timestamp hour per open tsdb spec
+Date.from(Instant.ofEpochSecond(Longs.fromByteArray(ts)))
 ```
 

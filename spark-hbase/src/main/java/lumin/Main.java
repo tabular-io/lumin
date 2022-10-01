@@ -1,6 +1,5 @@
 package lumin;
 
-import lumin.CellParser.Metric;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.mapreduce.HFileInputFormat;
 import org.apache.hadoop.io.NullWritable;

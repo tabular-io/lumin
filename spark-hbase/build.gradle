@@ -29,7 +29,6 @@ dependencies {
   implementation "org.apache.hadoop:hadoop-common:${hadoopVersion}"
   //TODO end
 
-
   implementation "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
   implementation "org.apache.iceberg:iceberg-aws:${icebergVersion}"
   implementation "io.tabular:tabular-client:${tabularVersion}"

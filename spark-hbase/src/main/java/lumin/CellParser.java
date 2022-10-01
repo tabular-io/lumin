@@ -1,6 +1,9 @@
 package lumin;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
+import java.util.HashMap;
 import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -16,7 +19,7 @@ public class CellParser {
     byte [] salt = new byte[SALT_BYTES];
     byte [] muid = new byte [UID_BYTES];
     byte [] ts = new byte[8];
-    Map<byte[], byte[]> tags = Map.of();
+    Map<byte[], byte[]> tags = Maps.newHashMap();
     byte [] qualifier;
     byte [] value;
 

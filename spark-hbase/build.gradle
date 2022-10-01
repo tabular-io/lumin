@@ -1,28 +1,42 @@
 plugins {
-  id 'java-library'
-  id 'com.github.johnrengelman.shadow' version '7.1.2'
+  id "java-library"
+  id "com.github.johnrengelman.shadow" version "7.1.2"
 }
 
 repositories {
-  mavenLocal()
   mavenCentral()
+  maven {
+    url "https://tabular-repository-public.s3.amazonaws.com/releases"
+  }
 }
 
-compileJava {
-  options.release.set(8)
+//compileJava {
+//  options.release.set(8)
+//}
+
+ext {
+  sparkVersion = "3.3.0"
+  hbaseVersion = "2.4.10"
+  hadoopVersion = "3.3.2"
+  icebergVersion = "0.14.1"
+  tabularVersion = "0.29.3"
 }
 
 dependencies {
-  implementation('org.apache.hbase:hbase-mapreduce:2.4.10') {
-    exclude group: 'org.apache.hadoop'
-    exclude group: 'io.netty'
-  }
-  //implementation 'io.airlift:aircompressor:0.21'
+  //TODO: make compileOnly...
+  implementation "org.apache.spark:spark-core_2.12:${sparkVersion}"
+  implementation "org.apache.spark:spark-sql_2.12:${sparkVersion}"
+  implementation "org.apache.hadoop:hadoop-common:${hadoopVersion}"
+  //TODO end
 
-  compileOnly 'org.apache.hadoop:hadoop-common:2.10.1'
+
+  implementation "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
+  implementation "org.apache.iceberg:iceberg-aws:${icebergVersion}"
+  implementation "io.tabular:tabular-client:${tabularVersion}"
+  implementation "org.apache.hbase:hbase-mapreduce:${hbaseVersion}"
+  implementation "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
 }
 
 shadowJar {
-  relocate 'org.apache.commons', 'lumin.org.apache.commons'
+  relocate "org.apache.commons", "lumin.org.apache.commons"
 }
-

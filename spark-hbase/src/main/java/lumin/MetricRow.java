@@ -27,6 +27,7 @@ public class MetricRow {
 
     // Validate size for prefix and tag k/v ids
     if (dataLen < PREFIX_BYTES || (dataLen - PREFIX_BYTES) % (TAG_BYTES * 2) != 0) {
+      // TODO: handle error
       return;
     }
 

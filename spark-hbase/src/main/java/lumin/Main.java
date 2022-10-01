@@ -41,7 +41,7 @@ public class Main {
             .toJavaRDD()
             .map(
                 tuple -> {
-                  Metric m = new Metric(tuple._2);
+                  MetricRow m = new MetricRow(tuple._2);
                   return RowFactory.create(
                       m.salt,
                       m.muid,

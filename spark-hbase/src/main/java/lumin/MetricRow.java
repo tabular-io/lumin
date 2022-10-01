@@ -5,7 +5,7 @@ import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 
-public class Metric {
+public class MetricRow {
 
   private static final int SALT_BYTES = 4;
   private static final int UID_BYTES = 3;
@@ -20,7 +20,7 @@ public class Metric {
   byte[] qualifier;
   byte[] value;
 
-  public Metric(Cell cell) {
+  public MetricRow(Cell cell) {
     byte[] data = cell.getRowArray();
     int dataIdx = cell.getRowOffset();
     int dataLen = cell.getRowLength();

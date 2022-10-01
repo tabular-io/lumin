@@ -18,13 +18,18 @@ import scala.collection.JavaConverters;
 public class Convert implements Serializable {
 
   private SparkSession spark;
-  private String tsdbDir;
-  private String tsdbUidDir;
+  private String dataDir;
+  private String dataTable;
+  private String uidDir;
+  private String uidTable;
 
-  public Convert(SparkSession spark, String tsdbDir, String tsdbUidDir) {
+  public Convert(
+      SparkSession spark, String dataDir, String dataTable, String uidDir, String uidTable) {
     this.spark = spark;
-    this.tsdbDir = tsdbDir;
-    this.tsdbUidDir = tsdbUidDir;
+    this.dataDir = dataDir;
+    this.dataTable = dataTable;
+    this.uidDir = uidDir;
+    this.uidTable = uidTable;
   }
 
   public void convert() {
@@ -40,7 +45,7 @@ public class Convert implements Serializable {
     Dataset<Row> df =
         loadHFiles(
             spark,
-            tsdbDir,
+            dataDir,
             schema,
             cell -> {
               MetricRow m = new MetricRow(cell);
@@ -48,8 +53,7 @@ public class Convert implements Serializable {
                   m.salt, m.muid, m.ts, JavaConverters.mapAsScalaMap(m.tags), m.qualifier, m.value);
             });
 
-    // TODO: write to table
-    System.out.println("**** cnt: " + df.count());
+    df.writeTo(dataTable).createOrReplace();
   }
 
   private void writeTsdbUid() {
@@ -58,15 +62,14 @@ public class Convert implements Serializable {
     Dataset<Row> df =
         loadHFiles(
             spark,
-            tsdbUidDir,
+            uidDir,
             schema,
             cell -> {
               UIDRow m = new UIDRow(cell);
               return RowFactory.create(m.uid, m.qualifier, m.name);
             });
 
-    // TODO: write to table
-    System.out.println("**** cnt: " + df.count());
+    df.writeTo(uidTable).createOrReplace();
   }
 
   private Dataset<Row> loadHFiles(

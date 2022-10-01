@@ -60,6 +60,6 @@ public class Main {
 
     System.out.println("**** cnt: " + df.count());
 
-    // TODO: write to table
+    // TODO: UID data, write both to tables
   }
 }

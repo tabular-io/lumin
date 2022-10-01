@@ -59,5 +59,7 @@ public class Main {
     Dataset<Row> df = spark.createDataset(rdd, RowEncoder.apply(schema));
 
     System.out.println("**** cnt: " + df.count());
+
+    // TODO: write to table
   }
 }

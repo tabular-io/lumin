@@ -17,13 +17,16 @@ import scala.collection.JavaConverters;
 public class Main {
 
   public static void main(String[] args) {
-    SparkConf conf = new SparkConf().setMaster("local").setAppName("tabular-analyzer")
-        .set("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
-        .set("spark.hadoop.fs.s3a.aws.credentials.provider",
-            "com.amazonaws.auth.DefaultAWSCredentialsProviderChain");
+    SparkConf conf =
+        new SparkConf()
+            .setMaster("local")
+            .setAppName("tabular-analyzer")
+            .set("spark.hadoop.fs.s3.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem")
+            .set(
+                "spark.hadoop.fs.s3a.aws.credentials.provider",
+                "com.amazonaws.auth.DefaultAWSCredentialsProviderChain");
 
-    SparkSession spark =
-        SparkSession.builder().config(conf).appName("lumin-import").getOrCreate();
+    SparkSession spark = SparkSession.builder().config(conf).appName("lumin-import").getOrCreate();
 
     String dir = "s3://tabular-lumin/data/tsdb/";
 
@@ -36,25 +39,25 @@ public class Main {
                 Cell.class,
                 ctx.hadoopConfiguration())
             .toJavaRDD()
-            .map(tuple -> {
-              Metric m = new Metric(tuple._2);
-              return RowFactory.create(
-                  m.salt,
-                  m.muid,
-                  m.ts,
-                  JavaConverters.mapAsScalaMap(m.tags),
-                  m.qualifier,
-                  m.value
-              );
-            }).rdd();
+            .map(
+                tuple -> {
+                  Metric m = new Metric(tuple._2);
+                  return RowFactory.create(
+                      m.salt,
+                      m.muid,
+                      m.ts,
+                      JavaConverters.mapAsScalaMap(m.tags),
+                      m.qualifier,
+                      m.value);
+                })
+            .rdd();
 
-    StructType schema = StructType.fromDDL(
-        "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
+    StructType schema =
+        StructType.fromDDL(
+            "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
 
     Dataset<Row> df = spark.createDataset(rdd, RowEncoder.apply(schema));
 
     System.out.println("**** cnt: " + df.count());
-
   }
-
 }

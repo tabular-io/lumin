@@ -1,6 +1,5 @@
 package lumin;
 
-import com.google.common.base.Preconditions;
 import com.google.common.collect.Maps;
 import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
@@ -34,7 +33,6 @@ public class Metric {
     System.arraycopy(data, dataIdx, salt, 0, SALT_BYTES);
     System.arraycopy(data, dataIdx + SALT_BYTES, muid, 0, UID_BYTES);
     System.arraycopy(data, dataIdx + SALT_BYTES + UID_BYTES, ts, ts.length - TS_BYTES, TS_BYTES);
-
 
     int tagCount = (dataLen - PREFIX_BYTES) / (TAG_BYTES * 2);
     int pos = dataIdx + PREFIX_BYTES;

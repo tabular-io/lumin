@@ -1,6 +1,7 @@
 package lumin;
 
 import java.io.Serializable;
+import java.util.Objects;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.mapreduce.HFileInputFormat;
 import org.apache.hadoop.io.NullWritable;
@@ -36,13 +37,12 @@ public class Convert implements Serializable {
   }
 
   private void writeTsdb() {
-    Dataset<Row> df =
-        loadHFiles(spark, dataDir, MetricRow.SCHMEA, cell -> new MetricRow(cell).toRow());
+    Dataset<Row> df = loadHFiles(spark, dataDir, MetricRow.SCHMEA, MetricRow::convertCellToRow);
     df.writeTo(dataTable).createOrReplace();
   }
 
   private void writeTsdbUid() {
-    Dataset<Row> df = loadHFiles(spark, uidDir, UIDRow.SCHEMA, cell -> new UIDRow(cell).toRow());
+    Dataset<Row> df = loadHFiles(spark, uidDir, UIDRow.SCHEMA, UIDRow::convertCellToRow);
     df.writeTo(uidTable).createOrReplace();
   }
 
@@ -58,7 +58,7 @@ public class Convert implements Serializable {
                 ctx.hadoopConfiguration())
             .toJavaRDD()
             .map(tuple -> fn.call(tuple._2))
-            // TODO: filter nulls/empty
+            .filter(Objects::nonNull)
             .rdd();
     return spark.createDataset(rdd, RowEncoder.apply(schema));
   }

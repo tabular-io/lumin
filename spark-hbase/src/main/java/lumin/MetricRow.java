@@ -10,7 +10,6 @@ import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
 
 public class MetricRow {
-
   public static final StructType SCHMEA =
       StructType.fromDDL(
           "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
@@ -21,14 +20,7 @@ public class MetricRow {
   private static final int PREFIX_BYTES = SALT_BYTES + UID_BYTES + TS_BYTES;
   private static final int TAG_BYTES = 3;
 
-  private byte[] salt = new byte[SALT_BYTES];
-  private byte[] muid = new byte[UID_BYTES];
-  private byte[] ts = new byte[8];
-  private Map<byte[], byte[]> tags = Maps.newHashMap();
-  private byte[] qualifier;
-  private byte[] value;
-
-  public MetricRow(Cell cell) {
+  public static Row convertCellToRow(Cell cell) {
     byte[] data = cell.getRowArray();
     int dataIdx = cell.getRowOffset();
     int dataLen = cell.getRowLength();
@@ -36,8 +28,12 @@ public class MetricRow {
     // Validate size for prefix and tag k/v ids
     if (dataLen < PREFIX_BYTES || (dataLen - PREFIX_BYTES) % (TAG_BYTES * 2) != 0) {
       // TODO: handle error
-      return;
+      return null;
     }
+
+    byte[] salt = new byte[SALT_BYTES];
+    byte[] muid = new byte[UID_BYTES];
+    byte[] ts = new byte[8];
 
     System.arraycopy(data, dataIdx, salt, 0, SALT_BYTES);
     System.arraycopy(data, dataIdx + SALT_BYTES, muid, 0, UID_BYTES);
@@ -46,6 +42,7 @@ public class MetricRow {
     int tagCount = (dataLen - PREFIX_BYTES) / (TAG_BYTES * 2);
     int pos = dataIdx + PREFIX_BYTES;
 
+    Map<byte[], byte[]> tags = Maps.newHashMap();
     for (int i = 0; i < tagCount; i++) {
       byte[] key = new byte[TAG_BYTES];
       byte[] value = new byte[TAG_BYTES];
@@ -58,11 +55,9 @@ public class MetricRow {
       tags.put(key, value);
     }
 
-    this.qualifier = CellUtil.cloneQualifier(cell);
-    this.value = CellUtil.cloneValue(cell);
-  }
+    byte[] qualifier = CellUtil.cloneQualifier(cell);
+    byte[] value = CellUtil.cloneValue(cell);
 
-  public Row toRow() {
     return RowFactory.create(salt, muid, ts, JavaConverters.mapAsScalaMap(tags), qualifier, value);
   }
 }

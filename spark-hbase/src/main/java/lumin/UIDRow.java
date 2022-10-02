@@ -11,22 +11,16 @@ public class UIDRow {
   public static final StructType SCHEMA =
       StructType.fromDDL("uid BINARY, qualifier BINARY, value STRING");
 
-  private byte[] uid;
-  private byte[] qualifier;
-  private String name;
-
-  public UIDRow(Cell cell) {
+  public static Row convertCellToRow(Cell cell) {
     String family = new String(CellUtil.cloneFamily(cell), StandardCharsets.UTF_8);
     if (!"name".equals(family)) {
-      return;
+      return null;
     }
 
-    this.uid = CellUtil.cloneRow(cell);
-    this.qualifier = CellUtil.cloneQualifier(cell);
-    this.name = new String(CellUtil.cloneValue(cell), StandardCharsets.UTF_8);
-  }
+    byte[] uid = CellUtil.cloneRow(cell);
+    byte[] qualifier = CellUtil.cloneQualifier(cell);
+    String name = new String(CellUtil.cloneValue(cell), StandardCharsets.UTF_8);
 
-  public Row toRow() {
     return RowFactory.create(uid, qualifier, name);
   }
 }

@@ -43,7 +43,6 @@ public class Convert implements Serializable {
 
   private void writeTsdbUid() {
     Dataset<Row> df = loadHFiles(spark, uidDir, UIDRow.SCHEMA, cell -> new UIDRow(cell).toRow());
-
     df.writeTo(uidTable).createOrReplace();
   }
 

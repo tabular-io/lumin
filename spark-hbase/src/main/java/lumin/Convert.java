@@ -9,11 +9,9 @@ import org.apache.spark.api.java.function.Function;
 import org.apache.spark.rdd.RDD;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
-import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 import org.apache.spark.sql.types.StructType;
-import scala.collection.JavaConverters;
 
 public class Convert implements Serializable {
 
@@ -38,36 +36,13 @@ public class Convert implements Serializable {
   }
 
   private void writeTsdb() {
-    StructType schema =
-        StructType.fromDDL(
-            "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
-
     Dataset<Row> df =
-        loadHFiles(
-            spark,
-            dataDir,
-            schema,
-            cell -> {
-              MetricRow m = new MetricRow(cell);
-              return RowFactory.create(
-                  m.salt, m.muid, m.ts, JavaConverters.mapAsScalaMap(m.tags), m.qualifier, m.value);
-            });
-
+        loadHFiles(spark, dataDir, MetricRow.SCHMEA, cell -> new MetricRow(cell).toRow());
     df.writeTo(dataTable).createOrReplace();
   }
 
   private void writeTsdbUid() {
-    StructType schema = StructType.fromDDL("uid BINARY, qualifier BINARY, value STRING");
-
-    Dataset<Row> df =
-        loadHFiles(
-            spark,
-            uidDir,
-            schema,
-            cell -> {
-              UIDRow m = new UIDRow(cell);
-              return RowFactory.create(m.uid, m.qualifier, m.name);
-            });
+    Dataset<Row> df = loadHFiles(spark, uidDir, UIDRow.SCHEMA, cell -> new UIDRow(cell).toRow());
 
     df.writeTo(uidTable).createOrReplace();
   }

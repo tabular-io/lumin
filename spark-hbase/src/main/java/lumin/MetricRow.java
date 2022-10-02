@@ -4,8 +4,16 @@ import com.google.common.collect.Maps;
 import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.RowFactory;
+import org.apache.spark.sql.types.StructType;
+import scala.collection.JavaConverters;
 
 public class MetricRow {
+
+  public static final StructType SCHMEA =
+      StructType.fromDDL(
+          "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
 
   private static final int SALT_BYTES = 4;
   private static final int UID_BYTES = 3;
@@ -52,5 +60,9 @@ public class MetricRow {
 
     this.qualifier = CellUtil.cloneQualifier(cell);
     this.value = CellUtil.cloneValue(cell);
+  }
+
+  public Row toRow() {
+    return RowFactory.create(salt, muid, ts, JavaConverters.mapAsScalaMap(tags), qualifier, value);
   }
 }

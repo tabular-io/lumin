@@ -37,12 +37,13 @@ public class Convert implements Serializable {
   }
 
   private void writeTsdb() {
-    Dataset<Row> df = loadHFiles(spark, dataDir, MetricRow.SCHMEA, MetricRow::convertCellToRow);
+    Dataset<Row> df =
+        loadHFiles(spark, dataDir, MetricConverter.SCHMEA, MetricConverter::cellToRow);
     df.writeTo(dataTable).createOrReplace();
   }
 
   private void writeTsdbUid() {
-    Dataset<Row> df = loadHFiles(spark, uidDir, UIDRow.SCHEMA, UIDRow::convertCellToRow);
+    Dataset<Row> df = loadHFiles(spark, uidDir, UIDConverter.SCHEMA, UIDConverter::cellToRow);
     df.writeTo(uidTable).createOrReplace();
   }
 

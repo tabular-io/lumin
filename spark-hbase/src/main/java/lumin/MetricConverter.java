@@ -9,7 +9,7 @@ import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
 
-public class MetricRow {
+public class MetricConverter {
   public static final StructType SCHMEA =
       StructType.fromDDL(
           "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
@@ -20,7 +20,7 @@ public class MetricRow {
   private static final int PREFIX_BYTES = SALT_BYTES + UID_BYTES + TS_BYTES;
   private static final int TAG_BYTES = 3;
 
-  public static Row convertCellToRow(Cell cell) {
+  public static Row cellToRow(Cell cell) {
     byte[] data = cell.getRowArray();
     int dataIdx = cell.getRowOffset();
     int dataLen = cell.getRowLength();

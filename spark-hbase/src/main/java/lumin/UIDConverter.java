@@ -7,11 +7,11 @@ import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 
-public class UIDRow {
+public class UIDConverter {
   public static final StructType SCHEMA =
       StructType.fromDDL("uid BINARY, qualifier BINARY, value STRING");
 
-  public static Row convertCellToRow(Cell cell) {
+  public static Row cellToRow(Cell cell) {
     String family = new String(CellUtil.cloneFamily(cell), StandardCharsets.UTF_8);
     if (!"name".equals(family)) {
       return null;

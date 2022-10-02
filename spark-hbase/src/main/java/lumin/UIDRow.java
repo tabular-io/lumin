@@ -11,9 +11,9 @@ public class UIDRow {
   public static final StructType SCHEMA =
       StructType.fromDDL("uid BINARY, qualifier BINARY, value STRING");
 
-  byte[] uid;
-  byte[] qualifier;
-  String name;
+  private byte[] uid;
+  private byte[] qualifier;
+  private String name;
 
   public UIDRow(Cell cell) {
     String family = new String(CellUtil.cloneFamily(cell), StandardCharsets.UTF_8);

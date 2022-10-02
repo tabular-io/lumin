@@ -21,12 +21,12 @@ public class MetricRow {
   private static final int PREFIX_BYTES = SALT_BYTES + UID_BYTES + TS_BYTES;
   private static final int TAG_BYTES = 3;
 
-  byte[] salt = new byte[SALT_BYTES];
-  byte[] muid = new byte[UID_BYTES];
-  byte[] ts = new byte[8];
-  Map<byte[], byte[]> tags = Maps.newHashMap();
-  byte[] qualifier;
-  byte[] value;
+  private byte[] salt = new byte[SALT_BYTES];
+  private byte[] muid = new byte[UID_BYTES];
+  private byte[] ts = new byte[8];
+  private Map<byte[], byte[]> tags = Maps.newHashMap();
+  private byte[] qualifier;
+  private byte[] value;
 
   public MetricRow(Cell cell) {
     byte[] data = cell.getRowArray();

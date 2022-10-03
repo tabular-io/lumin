@@ -1,9 +1,11 @@
 package lumin;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
+import java.util.List;
 import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -55,7 +57,7 @@ public class Metric implements Serializable {
     this.valueBytes = valueBytes;
   }
 
-  public static Metric fromCell(
+  public static List<Metric> fromCell(
       Cell cell,
       Map<ByteBuffer, String> metricMap,
       Map<ByteBuffer, String> tagKeyMap,
@@ -109,29 +111,35 @@ public class Metric implements Serializable {
     }
 
     byte[] qualifierBytes = CellUtil.cloneQualifier(cell);
-    if (qualifierBytes.length != 2) {
-      throw new RuntimeException("Unsupported qualifier format");
+    if (qualifierBytes.length % 2 != 0) {
+      throw new RuntimeException("Unexpected qualifier, odd number of bytes");
     }
-
-    // first 12 bits are seconds
-    short qualifier = ByteBuffer.wrap(qualifierBytes).getShort();
-    int offsetSec = qualifier >> 4;
-    millis += (1000L * offsetSec);
-    Timestamp ts = new Timestamp(millis);
-
     byte[] valueBytes = CellUtil.cloneValue(cell);
 
-    // last 4 bits are value format
-    double value;
-    if ((qualifier & 0b1111) == 0b1111) {
-      value = ByteBuffer.wrap(valueBytes).getDouble();
-    } else if ((qualifier & 0b1111) == 0 && valueBytes[0] == 0) {
-      value = 0;
-    } else {
-      throw new RuntimeException("Unexpected value type, expecting double");
-    }
+    List<Metric> result = Lists.newArrayList();
 
-    return new Metric(metricName, tags, value, ts, rowKey, qualifierBytes, valueBytes);
+    int numQualifiers = qualifierBytes.length / 2;
+    int valueOffset = 0;
+    for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {
+      short qualifier = ByteBuffer.wrap(qualifierBytes, qualifierOffset, 2).getShort();
+      int offsetSec = qualifier >> 4;
+      millis += (1000L * offsetSec);
+      Timestamp ts = new Timestamp(millis);
+
+      double value;
+      if ((qualifier & 0b1111) == 0b1111) {
+        value = ByteBuffer.wrap(valueBytes).getDouble();
+        valueOffset += 8;
+      } else if ((qualifier & 0b1111) == 0 && valueBytes[0] == 0) {
+        value = 0;
+        valueOffset++;
+      } else {
+        throw new RuntimeException("Unexpected value type, expecting double");
+      }
+
+      result.add(new Metric(metricName, tags, value, ts, rowKey, qualifierBytes, valueBytes));
+    }
+    return result;
   }
 
   public Row toRow() {

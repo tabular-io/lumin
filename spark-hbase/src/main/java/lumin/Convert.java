@@ -1,8 +1,9 @@
 package lumin;
 
+import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -12,10 +13,12 @@ import org.apache.hadoop.io.NullWritable;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
+import scala.Tuple2;
 
 public class Convert implements Serializable {
 
@@ -37,13 +40,13 @@ public class Convert implements Serializable {
   }
 
   public void convert() {
-    JavaRDD<UID> uidRdd = loadHFiles(spark, uidDir, UID::fromCell);
+    JavaRDD<UID> uidRdd = mapHFiles(uidDir, UID::fromCell);
     writeUidTable(uidRdd);
 
     List<UID> uidList = uidRdd.collect();
     uidBroadcast = new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
 
-    JavaRDD<Metric> metricRdd = loadHFiles(spark, metricDir, new MetricMapFunction(uidBroadcast));
+    JavaRDD<Metric> metricRdd = flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast));
     writeTsdb(metricRdd);
   }
 
@@ -61,7 +64,15 @@ public class Convert implements Serializable {
         .createOrReplace();
   }
 
-  private <T> JavaRDD<T> loadHFiles(SparkSession spark, String sourceDir, MapFunction<Cell, T> fn) {
+  private <T> JavaRDD<T> mapHFiles(String sourceDir, MapFunction<Cell, T> fn) {
+    return createRDD(sourceDir).map(tuple -> fn.call(tuple._2)).filter(Objects::nonNull);
+  }
+
+  private <T> JavaRDD<T> flatMapHFiles(String sourceDir, FlatMapFunction<Cell, T> fn) {
+    return createRDD(sourceDir).flatMap(tuple -> fn.call(tuple._2)).filter(Objects::nonNull);
+  }
+
+  private JavaRDD<Tuple2<NullWritable, Cell>> createRDD(String sourceDir) {
     SparkContext ctx = spark.sparkContext();
     return ctx.newAPIHadoopFile(
             sourceDir,
@@ -69,12 +80,10 @@ public class Convert implements Serializable {
             NullWritable.class,
             Cell.class,
             ctx.hadoopConfiguration())
-        .toJavaRDD()
-        .map(tuple -> fn.call(tuple._2))
-        .filter(Objects::nonNull);
+        .toJavaRDD();
   }
 
-  static class MetricMapFunction implements MapFunction<Cell, Metric> {
+  static class MetricMapFunction implements FlatMapFunction<Cell, Metric> {
     private final Broadcast<List<UID>> uidBroadcast;
     private transient Map<ByteBuffer, String> metricMap;
     private transient Map<ByteBuffer, String> tagKeyMap;
@@ -85,17 +94,17 @@ public class Convert implements Serializable {
     }
 
     @Override
-    public Metric call(Cell cell) {
+    public Iterator<Metric> call(Cell cell) {
       if (metricMap == null) {
         loadMaps(uidBroadcast.value());
       }
-      return Metric.fromCell(cell, metricMap, tagKeyMap, tagValueMap);
+      return Metric.fromCell(cell, metricMap, tagKeyMap, tagValueMap).iterator();
     }
 
     private void loadMaps(List<UID> uidList) {
-      metricMap = new HashMap<>();
-      tagKeyMap = new HashMap<>();
-      tagValueMap = new HashMap<>();
+      metricMap = Maps.newHashMap();
+      tagKeyMap = Maps.newHashMap();
+      tagValueMap = Maps.newHashMap();
       for (UID uid : uidList) {
         switch (uid.qualifier) {
           case "metrics":

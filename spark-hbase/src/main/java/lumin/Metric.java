@@ -3,6 +3,7 @@ package lumin;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.sql.Timestamp;
 import java.util.Map;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
@@ -16,9 +17,9 @@ public class Metric implements Serializable {
   public static final StructType SCHEMA =
       StructType.fromDDL(
           "metric_name STRING, "
-              + "ts BIGINT, "
               + "tags MAP<STRING, STRING>, "
               + "value DOUBLE, "
+              + "ts TIMESTAMP, "
               + "row_key BINARY, "
               + "qualifier BINARY, "
               + "value_bytes BINARY");
@@ -30,25 +31,25 @@ public class Metric implements Serializable {
   private static final int TAG_BYTES = 4;
 
   String metricName;
-  long ts;
   Map<String, String> tags;
   double value;
+  Timestamp ts;
   byte[] rowKey;
   byte[] qualifier;
   byte[] valueBytes;
 
   public Metric(
       String metricName,
-      long ts,
       Map<String, String> tags,
       double value,
+      Timestamp ts,
       byte[] rowKey,
       byte[] qualifier,
       byte[] valueBytes) {
     this.metricName = metricName;
-    this.ts = ts;
     this.tags = tags;
     this.value = value;
+    this.ts = ts;
     this.rowKey = rowKey;
     this.qualifier = qualifier;
     this.valueBytes = valueBytes;
@@ -76,7 +77,7 @@ public class Metric implements Serializable {
 
     byte[] tsBytes = new byte[TS_BYTES];
     System.arraycopy(rowKey, SALT_BYTES + UID_BYTES, tsBytes, 0, TS_BYTES);
-    long ts = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
+    long millis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
 
     int tagCount = (rowKey.length - PREFIX_BYTES) / (TAG_BYTES * 2);
     int pos = PREFIX_BYTES;
@@ -115,7 +116,8 @@ public class Metric implements Serializable {
     // first 12 bits are seconds
     short qualifier = ByteBuffer.wrap(qualifierBytes).getShort();
     int offsetSec = qualifier >> 4;
-    ts += (1000L * offsetSec);
+    millis += (1000L * offsetSec);
+    Timestamp ts = new Timestamp(millis);
 
     byte[] valueBytes = CellUtil.cloneValue(cell);
 
@@ -129,11 +131,11 @@ public class Metric implements Serializable {
       throw new RuntimeException("Unexpected value type, expecting double");
     }
 
-    return new Metric(metricName, ts, tags, value, rowKey, qualifierBytes, valueBytes);
+    return new Metric(metricName, tags, value, ts, rowKey, qualifierBytes, valueBytes);
   }
 
   public Row toRow() {
     return RowFactory.create(
-        metricName, ts, JavaConverters.mapAsScalaMap(tags), value, rowKey, qualifier, valueBytes);
+        metricName, JavaConverters.mapAsScalaMap(tags), value, ts, rowKey, qualifier, valueBytes);
   }
 }

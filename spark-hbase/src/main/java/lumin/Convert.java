@@ -1,66 +1,114 @@
 package lumin;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.mapreduce.HFileInputFormat;
 import org.apache.hadoop.io.NullWritable;
 import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.rdd.RDD;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import org.apache.spark.sql.types.StructType;
 
 public class Convert implements Serializable {
 
   private SparkSession spark;
-  private String dataDir;
-  private String dataTable;
+  private String metricDir;
+  private String metricTable;
   private String uidDir;
   private String uidTable;
 
+  private Broadcast<List<UID>> uidBroadcast;
+
   public Convert(
-      SparkSession spark, String dataDir, String dataTable, String uidDir, String uidTable) {
+      SparkSession spark, String metricDir, String metricTable, String uidDir, String uidTable) {
     this.spark = spark;
-    this.dataDir = dataDir;
-    this.dataTable = dataTable;
+    this.metricDir = metricDir;
+    this.metricTable = metricTable;
     this.uidDir = uidDir;
     this.uidTable = uidTable;
   }
 
   public void convert() {
-    writeTsdb();
-    // TODO: writeTsdbUid();
+    JavaRDD<UID> uidRdd = loadHFiles(spark, uidDir, UID::fromCell);
+    writeUidTable(uidRdd);
+
+    List<UID> uidList = uidRdd.collect();
+    uidBroadcast = new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
+
+    JavaRDD<Metric> metricRdd = loadHFiles(spark, metricDir, new MetricMapFunction(uidBroadcast));
+    writeTsdb(metricRdd);
   }
 
-  private void writeTsdb() {
-    Dataset<Row> df =
-        loadHFiles(spark, dataDir, MetricConverter.SCHMEA, MetricConverter::cellToRow);
-    df.writeTo(dataTable).createOrReplace();
+  private void writeUidTable(JavaRDD<UID> uidRdd) {
+    spark
+        .createDataset(uidRdd.map(UID::toRow).rdd(), RowEncoder.apply(UID.SCHEMA))
+        .writeTo(uidTable)
+        .createOrReplace();
   }
 
-  private void writeTsdbUid() {
-    Dataset<Row> df = loadHFiles(spark, uidDir, UIDConverter.SCHEMA, UIDConverter::cellToRow);
-    df.writeTo(uidTable).createOrReplace();
+  private void writeTsdb(JavaRDD<Metric> metricRdd) {
+    spark
+        .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
+        .writeTo(metricTable)
+        .createOrReplace();
   }
 
-  private Dataset<Row> loadHFiles(
-      SparkSession spark, String sourceDir, StructType schema, Function<Cell, Row> fn) {
+  private <T> JavaRDD<T> loadHFiles(SparkSession spark, String sourceDir, MapFunction<Cell, T> fn) {
     SparkContext ctx = spark.sparkContext();
-    RDD<Row> rdd =
-        ctx.newAPIHadoopFile(
-                sourceDir,
-                HFileInputFormat.class,
-                NullWritable.class,
-                Cell.class,
-                ctx.hadoopConfiguration())
-            .toJavaRDD()
-            .map(tuple -> fn.call(tuple._2))
-            .filter(Objects::nonNull)
-            .rdd();
-    return spark.createDataset(rdd, RowEncoder.apply(schema));
+    return ctx.newAPIHadoopFile(
+            sourceDir,
+            HFileInputFormat.class,
+            NullWritable.class,
+            Cell.class,
+            ctx.hadoopConfiguration())
+        .toJavaRDD()
+        .map(tuple -> fn.call(tuple._2))
+        .filter(Objects::nonNull);
+  }
+
+  static class MetricMapFunction implements MapFunction<Cell, Metric> {
+    private final Broadcast<List<UID>> uidBroadcast;
+    private transient Map<ByteBuffer, String> metricMap;
+    private transient Map<ByteBuffer, String> tagKeyMap;
+    private transient Map<ByteBuffer, String> tagValueMap;
+
+    MetricMapFunction(Broadcast<List<UID>> uidBroadcast) {
+      this.uidBroadcast = uidBroadcast;
+    }
+
+    @Override
+    public Metric call(Cell cell) {
+      if (metricMap == null) {
+        loadMaps(uidBroadcast.value());
+      }
+      return Metric.fromCell(cell, metricMap, tagKeyMap, tagValueMap);
+    }
+
+    private void loadMaps(List<UID> uidList) {
+      metricMap = new HashMap<>();
+      tagKeyMap = new HashMap<>();
+      tagValueMap = new HashMap<>();
+      for (UID uid : uidList) {
+        switch (uid.qualifier) {
+          case "metrics":
+            metricMap.put(ByteBuffer.wrap(uid.uid), uid.name);
+            break;
+          case "tagk":
+            tagKeyMap.put(ByteBuffer.wrap(uid.uid), uid.name);
+            break;
+          case "tagv":
+            tagValueMap.put(ByteBuffer.wrap(uid.uid), uid.name);
+            break;
+        }
+      }
+    }
   }
 }

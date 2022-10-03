@@ -14,11 +14,11 @@ public class MetricConverter {
       StructType.fromDDL(
           "salt BINARY, metric_id BINARY, ts BINARY, tags MAP<BINARY, BINARY>, qualifier BINARY, value BINARY");
 
-  private static final int SALT_BYTES = 4;
+  private static final int SALT_BYTES = 2;
   private static final int UID_BYTES = 3;
   private static final int TS_BYTES = 4;
   private static final int PREFIX_BYTES = SALT_BYTES + UID_BYTES + TS_BYTES;
-  private static final int TAG_BYTES = 3;
+  private static final int TAG_BYTES = 4;
 
   public static Row cellToRow(Cell cell) {
     byte[] data = cell.getRowArray();

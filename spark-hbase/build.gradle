@@ -26,10 +26,9 @@ compileJava {
 }
 
 dependencies {
-  implementation "org.apache.hbase:hbase-mapreduce:${hbaseVersion}"
-  runtimeOnly "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
-  runtimeOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
-
+  compileOnly "org.apache.hbase:hbase-mapreduce:${hbaseVersion}"
+  compileOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
+  compileOnly "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
   compileOnly "org.apache.spark:spark-core_2.12:${sparkVersion}"
   compileOnly "org.apache.spark:spark-sql_2.12:${sparkVersion}"
   compileOnly "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
@@ -44,10 +43,6 @@ configurations {
   testImplementation.extendsFrom compileOnly
 }
 
-shadowJar {
-  relocate "org.apache.commons", "lumin.org.apache.commons"
-}
-
 spotless {
   java {
     googleJavaFormat()
@@ -57,3 +52,10 @@ spotless {
 test {
   useJUnitPlatform()
 }
+
+shadowJar {
+  zip64 true
+  relocate 'com.google.common', 'lumin.shaded.com.google.common'
+}
+
+assemble.dependsOn shadowJar

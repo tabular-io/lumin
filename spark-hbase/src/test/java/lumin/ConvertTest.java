@@ -26,7 +26,7 @@ public class ConvertTest {
 
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
     String dataDir = "s3://tabular-lumin/data/tsdb/";
-    String dataTable = "temp.lumin_data";
+    String dataTable = "temp.lumin_metrics";
     String uidDir = "s3://tabular-lumin/data/tsdb-uid/";
     String uidTable = "temp.lumin_uids";
 

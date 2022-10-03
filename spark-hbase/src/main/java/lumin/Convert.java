@@ -60,7 +60,6 @@ public class Convert implements Serializable {
   private void writeTsdb(JavaRDD<Metric> metricRdd) {
     spark
         .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
-        .limit(1000)
         .writeTo(metricTable)
         .createOrReplace();
   }

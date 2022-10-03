@@ -128,9 +128,9 @@ public class Metric implements Serializable {
 
       double value;
       if ((qualifier & 0b1111) == 0b1111) {
-        value = ByteBuffer.wrap(valueBytes).getDouble();
+        value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getDouble();
         valueOffset += 8;
-      } else if ((qualifier & 0b1111) == 0 && valueBytes[0] == 0) {
+      } else if ((qualifier & 0b1111) == 0 && valueBytes[valueOffset] == 0) {
         value = 0;
         valueOffset++;
       } else {

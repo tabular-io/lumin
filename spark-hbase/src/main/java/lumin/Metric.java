@@ -79,7 +79,7 @@ public class Metric implements Serializable {
 
     byte[] tsBytes = new byte[TS_BYTES];
     System.arraycopy(rowKey, SALT_BYTES + UID_BYTES, tsBytes, 0, TS_BYTES);
-    long millis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
+    long baseMillis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
 
     int tagCount = (rowKey.length - PREFIX_BYTES) / (TAG_BYTES * 2);
     int pos = PREFIX_BYTES;
@@ -123,8 +123,7 @@ public class Metric implements Serializable {
     for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {
       short qualifier = ByteBuffer.wrap(qualifierBytes, qualifierOffset, 2).getShort();
       int offsetSec = qualifier >> 4;
-      millis += (1000L * offsetSec);
-      Timestamp ts = new Timestamp(millis);
+      Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
 
       double value;
       if ((qualifier & 0b1111) == 0b1111) {

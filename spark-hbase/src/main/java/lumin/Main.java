@@ -14,8 +14,8 @@ public class Main {
 
     options.addOption("m", "metrics-dir", true, "Directory containing metrics data files");
     options.addOption("M", "metrics-table", true, "Output table for metrics data");
-    options.addOption("u", "uid-dir", true, "Directory containing UID data files");
-    options.addOption("U", "uid-table", true, "Output table for UID data");
+    options.addOption("u", "uids-dir", true, "Directory containing UID data files");
+    options.addOption("U", "uids-table", true, "Output table for UID data");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);

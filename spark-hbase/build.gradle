@@ -26,21 +26,33 @@ compileJava {
 }
 
 dependencies {
-  compileOnly "org.apache.hbase:hbase-mapreduce:${hbaseVersion}"
-  compileOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
-  compileOnly "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
+  implementation("org.apache.hbase:hbase-mapreduce:${hbaseVersion}") {
+    exclude group: "org.apache.hadoop"
+  }
+
   compileOnly "org.apache.spark:spark-core_2.12:${sparkVersion}"
   compileOnly "org.apache.spark:spark-sql_2.12:${sparkVersion}"
-  compileOnly "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
-  compileOnly "org.apache.iceberg:iceberg-aws:${icebergVersion}"
+  compileOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
 
   testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
   testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+
+  testRuntimeOnly "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
+  testRuntimeOnly "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
+  testRuntimeOnly "org.apache.iceberg:iceberg-aws:${icebergVersion}"
   testRuntimeOnly "io.tabular:tabular-client:${tabularVersion}"
 }
 
 configurations {
   testImplementation.extendsFrom compileOnly
+}
+
+jar {
+  manifest {
+    attributes(
+        "Main-Class": "lumin.Main"
+    )
+  }
 }
 
 spotless {
@@ -55,7 +67,4 @@ test {
 
 shadowJar {
   zip64 true
-  relocate 'com.google.common', 'lumin.shaded.com.google.common'
 }
-
-assemble.dependsOn shadowJar

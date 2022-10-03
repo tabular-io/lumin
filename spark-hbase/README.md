@@ -4,10 +4,10 @@
 
 Build the shadow jar:
 ```bash
-./gradlew clean build shadowJar
+./gradlew clean build
 ```
 
-Run using the `spark-hbase-all.jar` jar file:
+Run using the `build/libs/spark-hbase-all.jar` jar file:
 ```bash
 bin/spark-submit \
     --repositories https://tabular-repository-public.s3.amazonaws.com/releases \

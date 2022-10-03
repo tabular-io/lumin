@@ -18,9 +18,10 @@ public class Metric implements Serializable {
           "metric_name STRING, "
               + "ts BIGINT, "
               + "tags MAP<STRING, STRING>, "
+              + "value DOUBLE, "
               + "row_key BINARY, "
               + "qualifier BINARY, "
-              + "value BINARY");
+              + "value_bytes BINARY");
 
   private static final int SALT_BYTES = 1;
   private static final int UID_BYTES = 4;
@@ -31,23 +32,26 @@ public class Metric implements Serializable {
   String metricName;
   long ts;
   Map<String, String> tags;
+  double value;
   byte[] rowKey;
   byte[] qualifier;
-  byte[] value;
+  byte[] valueBytes;
 
   public Metric(
       String metricName,
       long ts,
       Map<String, String> tags,
+      double value,
       byte[] rowKey,
       byte[] qualifier,
-      byte[] value) {
+      byte[] valueBytes) {
     this.metricName = metricName;
     this.ts = ts;
     this.tags = tags;
+    this.value = value;
     this.rowKey = rowKey;
     this.qualifier = qualifier;
-    this.value = value;
+    this.valueBytes = valueBytes;
   }
 
   public static Metric fromCell(
@@ -103,21 +107,33 @@ public class Metric implements Serializable {
       tags.put(tagkStr, tagvStr);
     }
 
-    byte[] qualifier = CellUtil.cloneQualifier(cell);
-    if (qualifier.length == 2) {
-      // first 12 bits are seconds
-      int offsetSec = ByteBuffer.wrap(qualifier).getShort() >> 4;
-      ts += (1000L * offsetSec);
-    } else {
+    byte[] qualifierBytes = CellUtil.cloneQualifier(cell);
+    if (qualifierBytes.length != 2) {
       throw new RuntimeException("Unsupported qualifier format");
     }
-    byte[] value = CellUtil.cloneValue(cell);
 
-    return new Metric(metricName, ts, tags, rowKey, qualifier, value);
+    // first 12 bits are seconds
+    short qualifier = ByteBuffer.wrap(qualifierBytes).getShort();
+    int offsetSec = qualifier >> 4;
+    ts += (1000L * offsetSec);
+
+    byte[] valueBytes = CellUtil.cloneValue(cell);
+
+    // last 4 bits are value format
+    double value;
+    if ((qualifier & 0b1111) == 0b1111) {
+      value = ByteBuffer.wrap(valueBytes).getDouble();
+    } else if ((qualifier & 0b1111) == 0 && valueBytes[0] == 0) {
+      value = 0;
+    } else {
+      throw new RuntimeException("Unexpected value type, expecting double");
+    }
+
+    return new Metric(metricName, ts, tags, value, rowKey, qualifierBytes, valueBytes);
   }
 
   public Row toRow() {
     return RowFactory.create(
-        metricName, ts, JavaConverters.mapAsScalaMap(tags), rowKey, qualifier, value);
+        metricName, ts, JavaConverters.mapAsScalaMap(tags), value, rowKey, qualifier, valueBytes);
   }
 }

@@ -11,30 +11,41 @@ repositories {
   }
 }
 
-//compileJava {
-//  options.release.set(8)
-//}
-
 ext {
   sparkVersion = "3.3.0"
   hbaseVersion = "2.4.10"
   hadoopVersion = "3.3.2"
   icebergVersion = "0.14.1"
   tabularVersion = "0.29.3"
+  junitVersion = "5.8.2"
+}
+
+compileJava {
+  sourceCompatibility = "1.8"
+  targetCompatibility = "1.8"
 }
 
 dependencies {
-  //TODO: make compileOnly...
-  implementation "org.apache.spark:spark-core_2.12:${sparkVersion}"
-  implementation "org.apache.spark:spark-sql_2.12:${sparkVersion}"
-  implementation "org.apache.hadoop:hadoop-common:${hadoopVersion}"
-  //TODO end
-
-  implementation "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
-  implementation "org.apache.iceberg:iceberg-aws:${icebergVersion}"
-  implementation "io.tabular:tabular-client:${tabularVersion}"
   implementation "org.apache.hbase:hbase-mapreduce:${hbaseVersion}"
-  implementation "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
+  runtimeOnly "org.apache.hadoop:hadoop-aws:${hadoopVersion}"
+  runtimeOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
+
+  compileOnly "org.apache.spark:spark-core_2.12:${sparkVersion}"
+  compileOnly "org.apache.spark:spark-sql_2.12:${sparkVersion}"
+  compileOnly "org.apache.iceberg:iceberg-spark-3.3_2.12:${icebergVersion}"
+  compileOnly "org.apache.iceberg:iceberg-aws:${icebergVersion}"
+
+  testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+  testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+  testRuntimeOnly "io.tabular:tabular-client:${tabularVersion}"
+}
+
+configurations {
+  testImplementation.extendsFrom compileOnly
+}
+
+shadowJar {
+  relocate "org.apache.commons", "lumin.org.apache.commons"
 }
 
 spotless {
@@ -43,6 +54,6 @@ spotless {
   }
 }
 
-shadowJar {
-  relocate "org.apache.commons", "lumin.org.apache.commons"
+test {
+  useJUnitPlatform()
 }

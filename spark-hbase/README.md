@@ -25,3 +25,5 @@ bin/spark-submit \
       --uids-dir s3://tabular-lumin/data/tsdb-uid \
       --uids-table temp.lumin_uids
 ```
+
+Adjust memory, core, and other Spark config settings as needed.

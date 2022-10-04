@@ -1,5 +1,8 @@
 package lumin;
 
+import static org.apache.spark.sql.functions.col;
+import static org.apache.spark.sql.functions.hours;
+
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
@@ -21,12 +24,10 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 
 public class Convert implements Serializable {
 
-  private SparkSession spark;
-  private String metricDir;
-  private String uidDir;
-  private String outputTable;
-
-  private Broadcast<List<UID>> uidBroadcast;
+  private final SparkSession spark;
+  private final String metricDir;
+  private final String uidDir;
+  private final String outputTable;
 
   public Convert(SparkSession spark, String metricDir, String uidDir, String outputTable) {
     this.spark = spark;
@@ -37,7 +38,8 @@ public class Convert implements Serializable {
 
   public void convert() {
     List<UID> uidList = mapHFiles(uidDir, UID::fromCellData).collect();
-    uidBroadcast = new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
+    Broadcast<List<UID>> uidBroadcast =
+        new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
 
     JavaRDD<Metric> metricRdd = flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast));
     writeOutput(metricRdd);
@@ -46,7 +48,9 @@ public class Convert implements Serializable {
   private void writeOutput(JavaRDD<Metric> metricRdd) {
     spark
         .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
+        .orderBy(col("ts"))
         .writeTo(outputTable)
+        .partitionedBy(hours(col("ts")))
         .createOrReplace();
   }
 

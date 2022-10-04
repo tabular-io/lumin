@@ -15,11 +15,7 @@ import scala.collection.JavaConverters;
 public class Metric implements Serializable {
 
   public static final StructType SCHEMA =
-      StructType.fromDDL(
-          "metric_name STRING, "
-              + "tags MAP<STRING, STRING>, "
-              + "value DOUBLE, "
-              + "ts TIMESTAMP");
+      StructType.fromDDL("metric STRING, ts TIMESTAMP, value DOUBLE, tags MAP<STRING, STRING>");
 
   private static final int SALT_BYTES = 1;
   private static final int UID_BYTES = 4;
@@ -161,6 +157,6 @@ public class Metric implements Serializable {
   }
 
   public Row toRow() {
-    return RowFactory.create(metricName, JavaConverters.mapAsScalaMap(tags), value, ts);
+    return RowFactory.create(metricName, ts, value, JavaConverters.mapAsScalaMap(tags));
   }
 }

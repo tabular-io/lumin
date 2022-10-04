@@ -120,25 +120,61 @@ public class Metric implements Serializable {
 
     int numQualifiers = qualifierBytes.length / 2;
     int valueOffset = 0;
+
     for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {
       short qualifier = ByteBuffer.wrap(qualifierBytes, qualifierOffset, 2).getShort();
       int offsetSec = qualifier >> 4;
       Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
 
-      double value;
-      if ((qualifier & 0b1111) == 0b1111) {
-        value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getDouble();
-        valueOffset += 8;
-      } else if ((qualifier & 0b1111) == 0) {
-        value = valueBytes[valueOffset];
-        valueOffset++;
-      } else {
-        throw new RuntimeException("Unexpected value type, expecting double");
-      }
+      boolean isInt = (qualifier & 0b1000) == 0;
+      int valueLen = (qualifier & 0b111) + 1;
+      double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
+      valueOffset += valueLen;
 
       result.add(new Metric(metricName, tags, value, ts, rowKey, qualifierBytes, valueBytes));
     }
     return result;
+  }
+
+  private static double parseValue(
+      boolean isInt, byte[] valueBytes, int valueOffset, int valueLen) {
+    double value;
+    switch (valueLen) {
+      case 1:
+        if (!isInt) {
+          throw new RuntimeException("Invalid float length: " + valueLen);
+        }
+        value = valueBytes[valueOffset];
+        break;
+
+      case 2:
+        if (!isInt) {
+          throw new RuntimeException("Invalid float length: " + valueLen);
+        }
+        value = ByteBuffer.wrap(valueBytes, valueOffset, 2).getShort();
+        break;
+
+      case 4:
+        if (isInt) {
+          value = ByteBuffer.wrap(valueBytes, valueOffset, 4).getInt();
+        } else {
+          value = ByteBuffer.wrap(valueBytes, valueOffset, 4).getFloat();
+        }
+        break;
+
+      case 8:
+        if (isInt) {
+          value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getLong();
+        } else {
+          value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getDouble();
+        }
+        break;
+
+      default:
+        throw new RuntimeException("Invalid value length: " + valueLen);
+    }
+
+    return value;
   }
 
   public Row toRow() {

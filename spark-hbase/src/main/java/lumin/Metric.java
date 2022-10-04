@@ -129,8 +129,8 @@ public class Metric implements Serializable {
       if ((qualifier & 0b1111) == 0b1111) {
         value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getDouble();
         valueOffset += 8;
-      } else if ((qualifier & 0b1111) == 0 && valueBytes[valueOffset] == 0) {
-        value = 0;
+      } else if ((qualifier & 0b1111) == 0) {
+        value = valueBytes[valueOffset];
         valueOffset++;
       } else {
         throw new RuntimeException("Unexpected value type, expecting double");

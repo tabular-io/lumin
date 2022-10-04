@@ -62,13 +62,10 @@ public class Metric implements Serializable {
     int tagCount = (rowKey.length - PREFIX_BYTES) / (TAG_BYTES * 2);
     int pos = PREFIX_BYTES;
 
-    Map<byte[], byte[]> tagIds = Maps.newHashMap();
     Map<String, String> tags = Maps.newHashMap();
     for (int i = 0; i < tagCount; i++) {
       byte[] tagk = new byte[TAG_BYTES];
       byte[] tagv = new byte[TAG_BYTES];
-
-      tagIds.put(tagk, tagv);
 
       System.arraycopy(rowKey, pos, tagk, 0, TAG_BYTES);
       pos += TAG_BYTES;

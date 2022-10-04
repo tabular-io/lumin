@@ -17,7 +17,7 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.MapFunction;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
@@ -54,12 +54,12 @@ public class Convert implements Serializable {
         .createOrReplace();
   }
 
-  private <T> JavaRDD<T> mapHFiles(String sourceDir, MapFunction<CellData, T> fn) {
-    return createRDD(sourceDir).map(fn::call).filter(Objects::nonNull);
+  private <T> JavaRDD<T> mapHFiles(String sourceDir, Function<CellData, T> fn) {
+    return createRDD(sourceDir).map(fn).filter(Objects::nonNull);
   }
 
   private <T> JavaRDD<T> flatMapHFiles(String sourceDir, FlatMapFunction<CellData, T> fn) {
-    return createRDD(sourceDir).flatMap(fn::call).filter(Objects::nonNull);
+    return createRDD(sourceDir).flatMap(fn).filter(Objects::nonNull);
   }
 
   private JavaRDD<CellData> createRDD(String sourceDir) {

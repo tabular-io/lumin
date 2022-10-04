@@ -22,14 +22,14 @@ public class ConvertTest {
             .set("spark.sql.catalog.tabular.catalog-impl", "org.apache.iceberg.rest.RESTCatalog")
             .set("spark.sql.catalog.tabular.uri", "https://api.dev.tabulardata.io/ws")
             .set("spark.sql.catalog.tabular.credential", System.getenv("TABULAR_CREDS"))
-            .set("spark.sql.defaultCatalog", "tabular");
+            .set("spark.sql.defaultCatalog", "tabular")
+            .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
-    String dataDir = "s3://tabular-lumin/data/tsdb/";
-    String dataTable = "default.lumin_metrics";
+    String metricDir = "s3://tabular-lumin/data/tsdb/";
     String uidDir = "s3://tabular-lumin/data/tsdb-uid/";
-    String uidTable = "default.lumin_uids";
+    String outputTable = "default.lumin_metrics";
 
-    new Convert(spark, dataDir, dataTable, uidDir, uidTable).convert();
+    new Convert(spark, metricDir, uidDir, outputTable).convert();
   }
 }

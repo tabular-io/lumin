@@ -18,61 +18,47 @@ import org.apache.spark.api.java.function.MapFunction;
 import org.apache.spark.broadcast.Broadcast;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
-import scala.Tuple2;
 
 public class Convert implements Serializable {
 
   private SparkSession spark;
   private String metricDir;
-  private String metricTable;
   private String uidDir;
-  private String uidTable;
+  private String outputTable;
 
   private Broadcast<List<UID>> uidBroadcast;
 
-  public Convert(
-      SparkSession spark, String metricDir, String metricTable, String uidDir, String uidTable) {
+  public Convert(SparkSession spark, String metricDir, String uidDir, String outputTable) {
     this.spark = spark;
     this.metricDir = metricDir;
-    this.metricTable = metricTable;
     this.uidDir = uidDir;
-    this.uidTable = uidTable;
+    this.outputTable = outputTable;
   }
 
   public void convert() {
-    JavaRDD<UID> uidRdd = mapHFiles(uidDir, UID::fromCell);
-    writeUidTable(uidRdd);
-
-    List<UID> uidList = uidRdd.collect();
+    List<UID> uidList = mapHFiles(uidDir, UID::fromCellData).collect();
     uidBroadcast = new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
 
     JavaRDD<Metric> metricRdd = flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast));
-    writeTsdb(metricRdd);
+    writeOutput(metricRdd);
   }
 
-  private void writeUidTable(JavaRDD<UID> uidRdd) {
-    spark
-        .createDataset(uidRdd.map(UID::toRow).rdd(), RowEncoder.apply(UID.SCHEMA))
-        .writeTo(uidTable)
-        .createOrReplace();
-  }
-
-  private void writeTsdb(JavaRDD<Metric> metricRdd) {
+  private void writeOutput(JavaRDD<Metric> metricRdd) {
     spark
         .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
-        .writeTo(metricTable)
+        .writeTo(outputTable)
         .createOrReplace();
   }
 
-  private <T> JavaRDD<T> mapHFiles(String sourceDir, MapFunction<Cell, T> fn) {
-    return createRDD(sourceDir).map(tuple -> fn.call(tuple._2)).filter(Objects::nonNull);
+  private <T> JavaRDD<T> mapHFiles(String sourceDir, MapFunction<CellData, T> fn) {
+    return createRDD(sourceDir).map(fn::call).filter(Objects::nonNull);
   }
 
-  private <T> JavaRDD<T> flatMapHFiles(String sourceDir, FlatMapFunction<Cell, T> fn) {
-    return createRDD(sourceDir).flatMap(tuple -> fn.call(tuple._2)).filter(Objects::nonNull);
+  private <T> JavaRDD<T> flatMapHFiles(String sourceDir, FlatMapFunction<CellData, T> fn) {
+    return createRDD(sourceDir).flatMap(fn::call).filter(Objects::nonNull);
   }
 
-  private JavaRDD<Tuple2<NullWritable, Cell>> createRDD(String sourceDir) {
+  private JavaRDD<CellData> createRDD(String sourceDir) {
     SparkContext ctx = spark.sparkContext();
     return ctx.newAPIHadoopFile(
             sourceDir,
@@ -80,10 +66,12 @@ public class Convert implements Serializable {
             NullWritable.class,
             Cell.class,
             ctx.hadoopConfiguration())
-        .toJavaRDD();
+        .toJavaRDD()
+        .map(tuple -> new CellData(tuple._2))
+        .repartition(spark.sessionState().conf().numShufflePartitions());
   }
 
-  static class MetricMapFunction implements FlatMapFunction<Cell, Metric> {
+  static class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
     private final Broadcast<List<UID>> uidBroadcast;
     private transient Map<ByteBuffer, String> metricMap;
     private transient Map<ByteBuffer, String> tagKeyMap;
@@ -94,11 +82,11 @@ public class Convert implements Serializable {
     }
 
     @Override
-    public Iterator<Metric> call(Cell cell) {
+    public Iterator<Metric> call(CellData cellData) {
       if (metricMap == null) {
         loadMaps(uidBroadcast.value());
       }
-      return Metric.fromCell(cell, metricMap, tagKeyMap, tagValueMap).iterator();
+      return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap).iterator();
     }
 
     private void loadMaps(List<UID> uidList) {

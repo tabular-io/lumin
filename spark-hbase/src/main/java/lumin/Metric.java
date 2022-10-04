@@ -7,8 +7,6 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
@@ -21,10 +19,7 @@ public class Metric implements Serializable {
           "metric_name STRING, "
               + "tags MAP<STRING, STRING>, "
               + "value DOUBLE, "
-              + "ts TIMESTAMP, "
-              + "row_key BINARY, "
-              + "qualifier BINARY, "
-              + "value_bytes BINARY");
+              + "ts TIMESTAMP");
 
   private static final int SALT_BYTES = 1;
   private static final int UID_BYTES = 4;
@@ -36,34 +31,21 @@ public class Metric implements Serializable {
   Map<String, String> tags;
   double value;
   Timestamp ts;
-  byte[] rowKey;
-  byte[] qualifier;
-  byte[] valueBytes;
 
-  public Metric(
-      String metricName,
-      Map<String, String> tags,
-      double value,
-      Timestamp ts,
-      byte[] rowKey,
-      byte[] qualifier,
-      byte[] valueBytes) {
+  public Metric(String metricName, Map<String, String> tags, double value, Timestamp ts) {
     this.metricName = metricName;
     this.tags = tags;
     this.value = value;
     this.ts = ts;
-    this.rowKey = rowKey;
-    this.qualifier = qualifier;
-    this.valueBytes = valueBytes;
   }
 
-  public static List<Metric> fromCell(
-      Cell cell,
+  public static List<Metric> fromCellData(
+      CellData cellData,
       Map<ByteBuffer, String> metricMap,
       Map<ByteBuffer, String> tagKeyMap,
       Map<ByteBuffer, String> tagValueMap) {
 
-    byte[] rowKey = CellUtil.cloneRow(cell);
+    byte[] rowKey = cellData.rowKey;
 
     // Validate size for prefix and tag k/v ids
     if (rowKey.length < PREFIX_BYTES || (rowKey.length - PREFIX_BYTES) % (TAG_BYTES * 2) != 0) {
@@ -110,11 +92,12 @@ public class Metric implements Serializable {
       tags.put(tagkStr, tagvStr);
     }
 
-    byte[] qualifierBytes = CellUtil.cloneQualifier(cell);
+    byte[] qualifierBytes = cellData.qualifier;
+    ;
     if (qualifierBytes.length % 2 != 0) {
       throw new RuntimeException("Unexpected qualifier, odd number of bytes");
     }
-    byte[] valueBytes = CellUtil.cloneValue(cell);
+    byte[] valueBytes = cellData.value;
 
     List<Metric> result = Lists.newArrayList();
 
@@ -131,7 +114,7 @@ public class Metric implements Serializable {
       double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
       valueOffset += valueLen;
 
-      result.add(new Metric(metricName, tags, value, ts, rowKey, qualifierBytes, valueBytes));
+      result.add(new Metric(metricName, tags, value, ts));
     }
     return result;
   }
@@ -178,7 +161,6 @@ public class Metric implements Serializable {
   }
 
   public Row toRow() {
-    return RowFactory.create(
-        metricName, JavaConverters.mapAsScalaMap(tags), value, ts, rowKey, qualifier, valueBytes);
+    return RowFactory.create(metricName, JavaConverters.mapAsScalaMap(tags), value, ts);
   }
 }

@@ -12,22 +12,20 @@ public class Main {
   public static void main(String[] args) throws Exception {
     Options options = new Options();
 
-    options.addOption("m", "metrics-dir", true, "Directory containing metrics data files");
-    options.addOption("M", "metrics-table", true, "Output table for metrics data");
-    options.addOption("u", "uids-dir", true, "Directory containing UID data files");
-    options.addOption("U", "uids-table", true, "Output table for UID data");
+    options.addOption("m", "metric-dir", true, "Directory containing metric data files");
+    options.addOption("u", "uid-dir", true, "Directory containing UID data files");
+    options.addOption("o", "output-table", true, "Output table");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
 
-    String metricsDir = cmd.getOptionValue("m");
-    String metricsTable = cmd.getOptionValue("M");
+    String metricDir = cmd.getOptionValue("m");
     String uidDir = cmd.getOptionValue("u");
-    String uidTable = cmd.getOptionValue("U");
+    String outputTable = cmd.getOptionValue("o");
 
     SparkConf conf = new SparkConf().setAppName("tsdb-import");
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
 
-    new Convert(spark, metricsDir, metricsTable, uidDir, uidTable).convert();
+    new Convert(spark, metricDir, uidDir, outputTable).convert();
   }
 }

@@ -19,11 +19,11 @@ bin/spark-submit \
     --conf spark.sql.catalog.tabular.uri=https://api.dev.tabulardata.io/ws \
     --conf spark.sql.catalog.tabular.credential=$TABULAR_CREDS \
     --conf spark.sql.defaultCatalog=tabular \
+    --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     spark-hbase-all.jar \
-      --metrics-dir s3://tabular-lumin/data/tsdb \
-      --metrics-table default.lumin_metrics \
-      --uids-dir s3://tabular-lumin/data/tsdb-uid \
-      --uids-table default.lumin_uids
+      --metric-dir s3://tabular-lumin/data/tsdb \
+      --uid-dir s3://tabular-lumin/data/tsdb-uid \
+      --output-table default.lumin_metrics
 ```
 
-Adjust memory, core, and other Spark config settings as needed.
+Adjust memory, cores, and other Spark settings as needed.

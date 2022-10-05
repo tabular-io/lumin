@@ -1,4 +1,4 @@
-# Spark OpenTSDB-to-Tabular converter
+# Spark OpenTSDB-to-Iceberg converter
 
 ## Running in Spark
 

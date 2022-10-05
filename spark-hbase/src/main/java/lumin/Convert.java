@@ -28,12 +28,15 @@ public class Convert implements Serializable {
   private final String metricDir;
   private final String uidDir;
   private final String outputTable;
+  private final int idSize;
 
-  public Convert(SparkSession spark, String metricDir, String uidDir, String outputTable) {
+  public Convert(
+      SparkSession spark, String metricDir, String uidDir, String outputTable, int idSize) {
     this.spark = spark;
     this.metricDir = metricDir;
     this.uidDir = uidDir;
     this.outputTable = outputTable;
+    this.idSize = idSize;
   }
 
   public void convert() {
@@ -41,7 +44,8 @@ public class Convert implements Serializable {
     Broadcast<List<UID>> uidBroadcast =
         new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
 
-    JavaRDD<Metric> metricRdd = flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast));
+    JavaRDD<Metric> metricRdd =
+        flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast, idSize));
     writeOutput(metricRdd);
   }
 
@@ -77,12 +81,14 @@ public class Convert implements Serializable {
 
   static class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
     private final Broadcast<List<UID>> uidBroadcast;
+    private final int idSize;
     private transient Map<ByteBuffer, String> metricMap;
     private transient Map<ByteBuffer, String> tagKeyMap;
     private transient Map<ByteBuffer, String> tagValueMap;
 
-    MetricMapFunction(Broadcast<List<UID>> uidBroadcast) {
+    MetricMapFunction(Broadcast<List<UID>> uidBroadcast, int idSize) {
       this.uidBroadcast = uidBroadcast;
+      this.idSize = idSize;
     }
 
     @Override
@@ -90,7 +96,7 @@ public class Convert implements Serializable {
       if (metricMap == null) {
         loadMaps(uidBroadcast.value());
       }
-      return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap).iterator();
+      return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap, idSize).iterator();
     }
 
     private void loadMaps(List<UID> uidList) {

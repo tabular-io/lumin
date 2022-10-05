@@ -17,11 +17,8 @@ public class Metric implements Serializable {
   public static final StructType SCHEMA =
       StructType.fromDDL("metric STRING, ts TIMESTAMP, value DOUBLE, tags MAP<STRING, STRING>");
 
-  private static final int SALT_BYTES = 1;
-  private static final int UID_BYTES = 4;
-  private static final int TS_BYTES = 4;
-  private static final int PREFIX_BYTES = SALT_BYTES + UID_BYTES + TS_BYTES;
-  private static final int TAG_BYTES = 4;
+  private static final int SALT_SIZE = 1;
+  private static final int TS_SIZE = 4;
 
   String metricName;
   Map<String, String> tags;
@@ -39,38 +36,48 @@ public class Metric implements Serializable {
       CellData cellData,
       Map<ByteBuffer, String> metricMap,
       Map<ByteBuffer, String> tagKeyMap,
-      Map<ByteBuffer, String> tagValueMap) {
+      Map<ByteBuffer, String> tagValueMap,
+      int idSize) {
+
+    List<Metric> result = Lists.newArrayList();
+
+    if (cellData.qualifier.length == 3 || cellData.qualifier.length == 5) {
+      // this is an annotation or other non-datapoint object, filter these out
+      return result;
+    }
+
+    int prefixSize = SALT_SIZE + TS_SIZE + idSize;
 
     byte[] rowKey = cellData.rowKey;
 
     // Validate size for prefix and tag k/v ids
-    if (rowKey.length < PREFIX_BYTES || (rowKey.length - PREFIX_BYTES) % (TAG_BYTES * 2) != 0) {
+    if (rowKey.length < prefixSize || (rowKey.length - prefixSize) % (idSize * 2) != 0) {
       throw new RuntimeException("Unsupported row key format");
     }
 
-    byte[] metricId = new byte[UID_BYTES];
-    System.arraycopy(rowKey, SALT_BYTES, metricId, 0, UID_BYTES);
+    byte[] metricId = new byte[idSize];
+    System.arraycopy(rowKey, SALT_SIZE, metricId, 0, idSize);
     String metricName = metricMap.get(ByteBuffer.wrap(metricId));
     if (metricName == null) {
       throw new RuntimeException("Unable to map metric ID to name");
     }
 
-    byte[] tsBytes = new byte[TS_BYTES];
-    System.arraycopy(rowKey, SALT_BYTES + UID_BYTES, tsBytes, 0, TS_BYTES);
+    byte[] tsBytes = new byte[TS_SIZE];
+    System.arraycopy(rowKey, SALT_SIZE + idSize, tsBytes, 0, TS_SIZE);
     long baseMillis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
 
-    int tagCount = (rowKey.length - PREFIX_BYTES) / (TAG_BYTES * 2);
-    int pos = PREFIX_BYTES;
+    int tagCount = (rowKey.length - prefixSize) / (idSize * 2);
+    int pos = prefixSize;
 
     Map<String, String> tags = Maps.newHashMap();
     for (int i = 0; i < tagCount; i++) {
-      byte[] tagk = new byte[TAG_BYTES];
-      byte[] tagv = new byte[TAG_BYTES];
+      byte[] tagk = new byte[idSize];
+      byte[] tagv = new byte[idSize];
 
-      System.arraycopy(rowKey, pos, tagk, 0, TAG_BYTES);
-      pos += TAG_BYTES;
-      System.arraycopy(rowKey, pos, tagv, 0, TAG_BYTES);
-      pos += TAG_BYTES;
+      System.arraycopy(rowKey, pos, tagk, 0, idSize);
+      pos += idSize;
+      System.arraycopy(rowKey, pos, tagv, 0, idSize);
+      pos += idSize;
 
       String tagkStr = tagKeyMap.get(ByteBuffer.wrap(tagk));
       if (tagkStr == null) {
@@ -86,13 +93,7 @@ public class Metric implements Serializable {
     }
 
     byte[] qualifierBytes = cellData.qualifier;
-    ;
-    if (qualifierBytes.length % 2 != 0) {
-      throw new RuntimeException("Unexpected qualifier, odd number of bytes");
-    }
     byte[] valueBytes = cellData.value;
-
-    List<Metric> result = Lists.newArrayList();
 
     int numQualifiers = qualifierBytes.length / 2;
     int valueOffset = 0;

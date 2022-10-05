@@ -50,7 +50,7 @@ configurations {
 jar {
   manifest {
     attributes(
-        "Main-Class": "lumin.Main"
+        "Main-Class": "io.tabular.tsdb.convert.Main"
     )
   }
 }

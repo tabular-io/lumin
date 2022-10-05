@@ -1,4 +1,4 @@
-package lumin;
+package io.tabular.tsdb.convert;
 
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;

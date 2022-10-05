@@ -7,7 +7,7 @@ Build the shadow jar:
 ./gradlew clean build
 ```
 
-Run using the `build/libs/spark-hbase-all.jar` jar file:
+Run using the `build/libs/convert-tsdb-all.jar` jar file:
 ```bash
 bin/spark-submit \
     --repositories https://tabular-repository-public.s3.amazonaws.com/releases \
@@ -20,7 +20,7 @@ bin/spark-submit \
     --conf spark.sql.catalog.tabular.credential=$TABULAR_CREDS \
     --conf spark.sql.defaultCatalog=tabular \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
-    spark-hbase-all.jar \
+    convert-tsdb-all.jar \
       --metric-dir s3://tabular-lumin/data/tsdb \
       --uid-dir s3://tabular-lumin/data/tsdb-uid \
       --output-table default.lumin_metrics

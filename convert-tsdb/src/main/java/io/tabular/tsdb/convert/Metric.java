@@ -1,4 +1,4 @@
-package lumin;
+package io.tabular.tsdb.convert;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;

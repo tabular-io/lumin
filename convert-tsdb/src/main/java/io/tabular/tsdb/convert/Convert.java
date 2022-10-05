@@ -1,4 +1,4 @@
-package lumin;
+package io.tabular.tsdb.convert;
 
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.hours;

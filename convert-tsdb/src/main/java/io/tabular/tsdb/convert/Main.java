@@ -1,4 +1,4 @@
-package lumin;
+package io.tabular.tsdb.convert;
 
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;

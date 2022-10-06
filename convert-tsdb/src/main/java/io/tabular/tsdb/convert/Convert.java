@@ -52,9 +52,9 @@ public class Convert implements Serializable {
   private void writeOutput(JavaRDD<Metric> metricRdd) {
     spark
         .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
-        .orderBy(col("ts"))
         .writeTo(outputTable)
         .partitionedBy(hours(col("ts")))
+        .option("fanout-enabled", true)
         .createOrReplace();
   }
 
@@ -75,8 +75,7 @@ public class Convert implements Serializable {
             Cell.class,
             ctx.hadoopConfiguration())
         .toJavaRDD()
-        .map(tuple -> new CellData(tuple._2))
-        .repartition(spark.sessionState().conf().numShufflePartitions());
+        .map(tuple -> new CellData(tuple._2));
   }
 
   static class MetricMapFunction implements FlatMapFunction<CellData, Metric> {

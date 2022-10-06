@@ -27,7 +27,8 @@ bin/spark-submit \
 ```
 
 Use the `--fanout` argument to enable fanout write instead of sorting. This will
-eliminate the sort but will also use more memory and will create more files if
-the source data isn't ordered.
+eliminate the sort but will also use more memory, especially if an HFile contains
+data for many hours. Also, fanout could create more files if the source data isn't
+ordered.
 
 Adjust memory, cores, and other Spark settings as needed.

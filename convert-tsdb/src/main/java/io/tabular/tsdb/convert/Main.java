@@ -18,6 +18,7 @@ public class Main {
     options.addOption("u", "uid-dir", true, "Directory containing UID data files");
     options.addOption("o", "output-table", true, "Output table");
     options.addOption("z", "size-of-id", true, "Size of ID fields, in bytes (default: 4)");
+    options.addOption("f", "fanout", false, "Enable fanout write instead of sorting");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
@@ -26,10 +27,11 @@ public class Main {
     String uidDir = cmd.getOptionValue("u");
     String outputTable = cmd.getOptionValue("o");
     int idSize = cmd.hasOption("z") ? Integer.parseInt(cmd.getOptionValue("z")) : DEFAULT_ID_SIZE;
+    boolean fanout = cmd.hasOption("f");
 
     SparkConf conf = new SparkConf().setAppName("tsdb-import");
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
 
-    new Convert(spark, metricDir, uidDir, outputTable, idSize).convert();
+    new Convert(spark, metricDir, uidDir, outputTable, idSize, fanout).convert();
   }
 }

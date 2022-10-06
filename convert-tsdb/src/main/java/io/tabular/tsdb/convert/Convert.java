@@ -19,6 +19,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.broadcast.Broadcast;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 
@@ -29,14 +31,21 @@ public class Convert implements Serializable {
   private final String uidDir;
   private final String outputTable;
   private final int idSize;
+  private boolean fanout;
 
   public Convert(
-      SparkSession spark, String metricDir, String uidDir, String outputTable, int idSize) {
+      SparkSession spark,
+      String metricDir,
+      String uidDir,
+      String outputTable,
+      int idSize,
+      boolean fanout) {
     this.spark = spark;
     this.metricDir = metricDir;
     this.uidDir = uidDir;
     this.outputTable = outputTable;
     this.idSize = idSize;
+    this.fanout = fanout;
   }
 
   public void convert() {
@@ -50,12 +59,16 @@ public class Convert implements Serializable {
   }
 
   private void writeOutput(JavaRDD<Metric> metricRdd) {
-    spark
-        .createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA))
-        .writeTo(outputTable)
-        .partitionedBy(hours(col("ts")))
-        .option("fanout-enabled", true)
-        .createOrReplace();
+    Dataset<Row> df =
+        spark.createDataset(metricRdd.map(Metric::toRow).rdd(), RowEncoder.apply(Metric.SCHEMA));
+    if (fanout) {
+      df.writeTo(outputTable)
+          .partitionedBy(hours(col("ts")))
+          .option("fanout-enabled", true)
+          .createOrReplace();
+    } else {
+      df.orderBy(col("ts")).writeTo(outputTable).partitionedBy(hours(col("ts"))).createOrReplace();
+    }
   }
 
   private <T> JavaRDD<T> mapHFiles(String sourceDir, Function<CellData, T> fn) {

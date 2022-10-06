@@ -30,6 +30,6 @@ public class ConvertTest {
     String uidDir = "s3://tabular-lumin/data/tsdb-uid/";
     String outputTable = "default.lumin_metrics";
 
-    new Convert(spark, metricDir, uidDir, outputTable, 4).convert();
+    new Convert(spark, metricDir, uidDir, outputTable, 4, false).convert();
   }
 }

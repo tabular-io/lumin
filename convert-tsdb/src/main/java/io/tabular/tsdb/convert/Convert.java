@@ -3,17 +3,18 @@ package io.tabular.tsdb.convert;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.hours;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.Lists;
+import io.tabular.tsdb.convert.model.CellData;
+import io.tabular.tsdb.convert.model.Metric;
+import io.tabular.tsdb.convert.model.UID;
+import java.io.IOException;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.mapreduce.HFileInputFormat;
-import org.apache.hadoop.io.NullWritable;
-import org.apache.spark.SparkContext;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.LocatedFileStatus;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.fs.RemoteIterator;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -80,54 +81,28 @@ public class Convert implements Serializable {
   }
 
   private JavaRDD<CellData> createRDD(String sourceDir) {
-    SparkContext ctx = spark.sparkContext();
-    return ctx.newAPIHadoopFile(
-            sourceDir,
-            HFileInputFormat.class,
-            NullWritable.class,
-            Cell.class,
-            ctx.hadoopConfiguration())
-        .toJavaRDD()
-        .map(tuple -> new CellData(tuple._2));
+    List<String> files = sourceFiles(sourceDir);
+    return new JavaSparkContext(spark.sparkContext())
+        .parallelize(files)
+        .flatMap(new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())));
   }
 
-  static class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
-    private final Broadcast<List<UID>> uidBroadcast;
-    private final int idSize;
-    private transient Map<ByteBuffer, String> metricMap;
-    private transient Map<ByteBuffer, String> tagKeyMap;
-    private transient Map<ByteBuffer, String> tagValueMap;
+  private List<String> sourceFiles(String sourceDir) {
+    try {
+      Path path = new Path(sourceDir);
+      FileSystem fs = path.getFileSystem(spark.sparkContext().hadoopConfiguration());
 
-    MetricMapFunction(Broadcast<List<UID>> uidBroadcast, int idSize) {
-      this.uidBroadcast = uidBroadcast;
-      this.idSize = idSize;
-    }
-
-    @Override
-    public Iterator<Metric> call(CellData cellData) {
-      if (metricMap == null) {
-        loadMaps(uidBroadcast.value());
-      }
-      return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap, idSize).iterator();
-    }
-
-    private void loadMaps(List<UID> uidList) {
-      metricMap = Maps.newHashMap();
-      tagKeyMap = Maps.newHashMap();
-      tagValueMap = Maps.newHashMap();
-      for (UID uid : uidList) {
-        switch (uid.qualifier) {
-          case "metrics":
-            metricMap.put(ByteBuffer.wrap(uid.uid), uid.name);
-            break;
-          case "tagk":
-            tagKeyMap.put(ByteBuffer.wrap(uid.uid), uid.name);
-            break;
-          case "tagv":
-            tagValueMap.put(ByteBuffer.wrap(uid.uid), uid.name);
-            break;
+      List<String> result = Lists.newArrayList();
+      RemoteIterator<LocatedFileStatus> fileStatusListIterator = fs.listFiles(path, true);
+      while (fileStatusListIterator.hasNext()) {
+        LocatedFileStatus fileStatus = fileStatusListIterator.next();
+        if (fileStatus.isFile()) {
+          result.add(fileStatus.getPath().toString());
         }
       }
+      return result;
+    } catch (IOException x) {
+      throw new RuntimeException(x);
     }
   }
 }

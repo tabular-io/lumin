@@ -26,8 +26,8 @@ public class ConvertTest {
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
-    String metricDir = "s3://tabular-lumin/data/tsdb/";
-    String uidDir = "s3://tabular-lumin/data/tsdb-uid/";
+    String metricDir = "s3://tabular-lumin/data/tsdb";
+    String uidDir = "s3://tabular-lumin/data/tsdb-uid";
     String outputTable = "default.lumin_metrics";
 
     new Convert(spark, metricDir, uidDir, outputTable, 4, false).convert();
@@ -59,8 +59,8 @@ public class ConvertTest {
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
-    String metricDir = "s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb/*/*";
-    String uidDir = "s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-uid/*/*";
+    String metricDir = "s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb";
+    String uidDir = "s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-uid";
     String outputTable = "default.lumin_metrics";
 
     new Convert(spark, metricDir, uidDir, outputTable, 3, false).convert();

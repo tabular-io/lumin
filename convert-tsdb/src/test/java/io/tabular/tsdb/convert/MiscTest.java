@@ -1,18 +1,18 @@
 package io.tabular.tsdb.convert;
 
 import com.google.common.collect.Lists;
+import io.tabular.tsdb.convert.model.CellData;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.mapreduce.HFileInputFormat;
-import org.apache.hadoop.io.NullWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -30,14 +30,10 @@ public class MiscTest {
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
     SparkContext ctx = spark.sparkContext();
     JavaRDD<Timestamp> rdd =
-        ctx.newAPIHadoopFile(
-                "file:/Users/bryan/Downloads/lumin-sample.hfile",
-                HFileInputFormat.class,
-                NullWritable.class,
-                Cell.class,
-                ctx.hadoopConfiguration())
-            .toJavaRDD()
-            .map(tuple -> new CellData(tuple._2))
+        new JavaSparkContext(spark.sparkContext())
+            .parallelize(Arrays.asList("file:/Users/bryan/Downloads/lumin-sample.hfile"))
+            .flatMap(
+                new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())))
             .flatMap(MiscTest::extractTimestamp);
 
     Timestamp minTs = rdd.min(new TsCompare());
@@ -50,13 +46,15 @@ public class MiscTest {
   public static Iterator<Timestamp> extractTimestamp(CellData cellData) {
     List<Timestamp> result = Lists.newArrayList();
 
-    if (cellData.qualifier.length == 3 || cellData.qualifier.length == 5) {
+    byte[] qualifierBytes = cellData.getQualifier();
+
+    if (qualifierBytes.length == 3 || qualifierBytes.length == 5) {
       // this is an annotation or other non-datapoint object, filter these out
       return result.iterator();
     }
 
     int prefixSize = SALT_SIZE + TS_SIZE + ID_SIZE;
-    byte[] rowKey = cellData.rowKey;
+    byte[] rowKey = cellData.getRowKey();
 
     // Validate size for prefix and tag k/v ids
     if (rowKey.length < prefixSize || (rowKey.length - prefixSize) % (ID_SIZE * 2) != 0) {
@@ -67,7 +65,6 @@ public class MiscTest {
     System.arraycopy(rowKey, SALT_SIZE + ID_SIZE, tsBytes, 0, TS_SIZE);
     long baseMillis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
 
-    byte[] qualifierBytes = cellData.qualifier;
     int numQualifiers = qualifierBytes.length / 2;
 
     for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {

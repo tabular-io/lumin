@@ -1,4 +1,4 @@
-package io.tabular.tsdb.convert;
+package io.tabular.tsdb.convert.model;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -7,11 +7,13 @@ import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
 import scala.collection.JavaConverters;
 
+@AllArgsConstructor
 public class Metric implements Serializable {
 
   public static final StructType SCHEMA =
@@ -20,17 +22,10 @@ public class Metric implements Serializable {
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
 
-  String metricName;
-  Map<String, String> tags;
-  double value;
-  Timestamp ts;
-
-  public Metric(String metricName, Map<String, String> tags, double value, Timestamp ts) {
-    this.metricName = metricName;
-    this.tags = tags;
-    this.value = value;
-    this.ts = ts;
-  }
+  private String metricName;
+  private Map<String, String> tags;
+  private double value;
+  private Timestamp ts;
 
   public static List<Metric> fromCellData(
       CellData cellData,
@@ -41,14 +36,17 @@ public class Metric implements Serializable {
 
     List<Metric> result = Lists.newArrayList();
 
-    if (cellData.qualifier.length == 3 || cellData.qualifier.length == 5) {
+    byte[] qualifierBytes = cellData.getQualifier();
+
+    if (qualifierBytes.length == 3 || qualifierBytes.length == 5) {
       // this is an annotation or other non-datapoint object, filter these out
       return result;
     }
 
-    int prefixSize = SALT_SIZE + TS_SIZE + idSize;
+    byte[] rowKey = cellData.getRowKey();
+    byte[] valueBytes = cellData.getValue();
 
-    byte[] rowKey = cellData.rowKey;
+    int prefixSize = SALT_SIZE + TS_SIZE + idSize;
 
     // Validate size for prefix and tag k/v ids
     if (rowKey.length < prefixSize || (rowKey.length - prefixSize) % (idSize * 2) != 0) {
@@ -91,9 +89,6 @@ public class Metric implements Serializable {
 
       tags.put(tagkStr, tagvStr);
     }
-
-    byte[] qualifierBytes = cellData.qualifier;
-    byte[] valueBytes = cellData.value;
 
     int numQualifiers = qualifierBytes.length / 2;
     int valueOffset = 0;

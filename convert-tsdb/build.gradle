@@ -26,13 +26,16 @@ compileJava {
 }
 
 dependencies {
-  implementation("org.apache.hbase:hbase-mapreduce:${hbaseVersion}") {
+  implementation("org.apache.hbase:hbase-server:${hbaseVersion}") {
     exclude group: "org.apache.hadoop"
   }
 
   compileOnly "org.apache.spark:spark-core_2.12:${sparkVersion}"
   compileOnly "org.apache.spark:spark-sql_2.12:${sparkVersion}"
   compileOnly "org.apache.hadoop:hadoop-common:${hadoopVersion}"
+
+  compileOnly "org.projectlombok:lombok:1.18.24"
+  annotationProcessor "org.projectlombok:lombok:1.18.24"
 
   testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
   testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"

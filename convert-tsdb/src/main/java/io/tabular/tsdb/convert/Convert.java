@@ -83,7 +83,7 @@ public class Convert implements Serializable {
   private JavaRDD<CellData> createRDD(String sourceDir) {
     List<String> files = sourceFiles(sourceDir);
     return new JavaSparkContext(spark.sparkContext())
-        .parallelize(files)
+        .parallelize(files, files.size())
         .flatMap(new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())));
   }
 

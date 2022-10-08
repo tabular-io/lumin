@@ -14,6 +14,8 @@ bin/spark-submit \
     --packages io.tabular:tabular-client-runtime:0.29.3,org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:0.14.1,org.apache.hadoop:hadoop-aws:3.3.2 \
     --driver-cores 8 \
     --driver-memory 16g \
+    --executor-cores 4 \
+    --executor-memory 24g \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.hadoop.fs.s3.impl=org.apache.hadoop.fs.s3a.S3AFileSystem \
     --conf spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider \

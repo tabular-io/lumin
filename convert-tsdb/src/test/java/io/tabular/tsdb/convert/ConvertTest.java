@@ -45,9 +45,7 @@ public class ConvertTest {
             .set(
                 "spark.hadoop.fs.s3a.aws.credentials.provider",
                 "org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider")
-            .set(
-                "spark.hadoop.fs.s3a.assumed.role.arn",
-                "arn:aws:iam::496348627607:role/bdrk-prod-ue1-moash-tabular")
+            .set("spark.hadoop.fs.s3a.assumed.role.arn", System.getenv("TSDB_ARN"))
             .set(
                 "spark.hadoop.fs.s3a.assumed.role.credentials.provider",
                 "com.amazonaws.auth.DefaultAWSCredentialsProviderChain")

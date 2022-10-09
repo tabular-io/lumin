@@ -19,7 +19,7 @@ bin/spark-submit \
     --conf spark.serializer=org.apache.spark.serializer.KryoSerializer \
     --conf spark.hadoop.fs.s3.impl=org.apache.hadoop.fs.s3a.S3AFileSystem \
     --conf spark.hadoop.fs.s3a.aws.credentials.provider=org.apache.hadoop.fs.s3a.auth.AssumedRoleCredentialProvider \
-    --conf spark.hadoop.fs.s3a.assumed.role.arn=arn:aws:iam::496348627607:role/bdrk-prod-ue1-moash-tabular \
+    --conf spark.hadoop.fs.s3a.assumed.role.arn=$TSDB_ARN \
     --conf spark.hadoop.fs.s3a.assumed.role.credentials.provider=com.amazonaws.auth.InstanceProfileCredentialsProvider \
     --conf spark.sql.catalog.tabular=org.apache.iceberg.spark.SparkCatalog \
     --conf spark.sql.catalog.tabular.catalog-impl=org.apache.iceberg.rest.RESTCatalog \

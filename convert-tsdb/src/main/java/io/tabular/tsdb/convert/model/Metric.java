@@ -22,10 +22,10 @@ public class Metric implements Serializable {
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
 
-  private String metricName;
-  private Map<String, String> tags;
-  private double value;
-  private Timestamp ts;
+  private final String metricName;
+  private final Map<String, String> tags;
+  private final double value;
+  private final Timestamp ts;
 
   public static List<Metric> fromCellData(
       CellData cellData,

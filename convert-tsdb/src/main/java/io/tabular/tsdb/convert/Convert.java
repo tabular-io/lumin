@@ -28,11 +28,12 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 public class Convert implements Serializable {
 
   private final SparkSession spark;
+  private final JavaSparkContext sparkContext;
   private final String metricDir;
   private final String uidDir;
   private final String outputTable;
   private final int idSize;
-  private boolean fanout;
+  private final boolean fanout;
 
   public Convert(
       SparkSession spark,
@@ -42,6 +43,7 @@ public class Convert implements Serializable {
       int idSize,
       boolean fanout) {
     this.spark = spark;
+    this.sparkContext = new JavaSparkContext(spark.sparkContext());
     this.metricDir = metricDir;
     this.uidDir = uidDir;
     this.outputTable = outputTable;
@@ -51,8 +53,7 @@ public class Convert implements Serializable {
 
   public void convert() {
     List<UID> uidList = mapHFiles(uidDir, UID::fromCellData).collect();
-    Broadcast<List<UID>> uidBroadcast =
-        new JavaSparkContext(spark.sparkContext()).broadcast(uidList);
+    Broadcast<List<UID>> uidBroadcast = sparkContext.broadcast(uidList);
 
     JavaRDD<Metric> metricRdd =
         flatMapHFiles(metricDir, new MetricMapFunction(uidBroadcast, idSize));
@@ -82,7 +83,7 @@ public class Convert implements Serializable {
 
   private JavaRDD<CellData> createRDD(String sourceDir) {
     List<String> files = sourceFiles(sourceDir);
-    return new JavaSparkContext(spark.sparkContext())
+    return sparkContext
         .parallelize(files, files.size())
         .flatMap(new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())));
   }

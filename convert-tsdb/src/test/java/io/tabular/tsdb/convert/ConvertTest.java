@@ -52,7 +52,7 @@ public class ConvertTest {
             .set("spark.sql.catalog.tabular", "org.apache.iceberg.spark.SparkCatalog")
             .set("spark.sql.catalog.tabular.catalog-impl", "org.apache.iceberg.rest.RESTCatalog")
             .set("spark.sql.catalog.tabular.uri", "https://api.dev.tabulardata.io/ws")
-            .set("spark.sql.catalog.tabular.credential", System.getenv("TABULAR_CREDS"))
+            .set("spark.sql.catalog.tabular.credential", System.getenv("TABULAR_EAST_CREDS"))
             .set("spark.sql.defaultCatalog", "tabular")
             .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
 

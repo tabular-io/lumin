@@ -13,7 +13,7 @@ import org.sparkproject.guava.collect.Iterators;
 
 class HFileToCellData implements FlatMapFunction<String, CellData> {
 
-  private ConfigHolder configHolder;
+  private final ConfigHolder configHolder;
 
   HFileToCellData(ConfigHolder configHolder) {
     this.configHolder = configHolder;
@@ -28,6 +28,7 @@ class HFileToCellData implements FlatMapFunction<String, CellData> {
     HFileScanner scanner = reader.getScanner(false, false);
 
     if (!scanner.seekTo()) {
+      reader.close();
       return Iterators.emptyIterator();
     }
 

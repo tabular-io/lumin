@@ -7,10 +7,10 @@ import org.apache.hadoop.hbase.CellUtil;
 
 @Getter
 public class CellData implements Serializable {
-  private byte[] rowKey;
-  private byte[] family;
-  private byte[] qualifier;
-  private byte[] value;
+  private final byte[] rowKey;
+  private final byte[] family;
+  private final byte[] qualifier;
+  private final byte[] value;
 
   public CellData(Cell cell) {
     this.rowKey = CellUtil.cloneRow(cell);

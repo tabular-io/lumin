@@ -8,9 +8,9 @@ import lombok.Getter;
 @AllArgsConstructor
 @Getter
 public class UID implements Serializable {
-  private byte[] uid;
-  private String qualifier;
-  private String name;
+  private final byte[] uid;
+  private final String qualifier;
+  private final String name;
 
   public static UID fromCellData(CellData cellData) {
     String family = new String(cellData.getFamily(), StandardCharsets.UTF_8);

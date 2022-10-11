@@ -28,7 +28,7 @@ bin/spark-submit \
     --conf spark.sql.defaultCatalog=tabular \
     convert-tsdb-all.jar \
       --metric-dir s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb \
-      --uid-dir s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-ui \
+      --uid-dir s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-uid \
       --output-table default.lumin_metrics \
       --size-of-id 3
 ```

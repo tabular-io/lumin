@@ -98,7 +98,7 @@ public class Convert implements Serializable {
       while (fileStatusListIterator.hasNext()) {
         LocatedFileStatus fileStatus = fileStatusListIterator.next();
         String name = fileStatus.getPath().getName();
-        if (fileStatus.isFile() && !name.equals(".region_info") && !name.endsWith("_$folder$")) {
+        if (fileStatus.isFile() && !name.equals(".regioninfo") && !name.endsWith("_$folder$")) {
           result.add(fileStatus.getPath().toString());
         }
       }

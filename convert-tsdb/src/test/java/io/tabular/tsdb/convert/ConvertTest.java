@@ -30,7 +30,16 @@ public class ConvertTest {
     String uidDir = "s3://tabular-lumin/data/tsdb-uid";
     String outputTable = "default.lumin_metrics";
 
-    new Convert(spark, metricDir, uidDir, outputTable, 4, false).convert();
+    ConvertOptions convertOptions =
+        ConvertOptions.builder()
+            .metricDir(metricDir)
+            .uidDir(uidDir)
+            .outputTable(outputTable)
+            .idSize(4)
+            .fanout(false)
+            .build();
+
+    new Convert(spark, convertOptions).convert();
   }
 
   @Test
@@ -61,6 +70,15 @@ public class ConvertTest {
     String uidDir = "s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-uid";
     String outputTable = "default.lumin_metrics";
 
-    new Convert(spark, metricDir, uidDir, outputTable, 3, false).convert();
+    ConvertOptions convertOptions =
+        ConvertOptions.builder()
+            .metricDir(metricDir)
+            .uidDir(uidDir)
+            .outputTable(outputTable)
+            .idSize(3)
+            .fanout(false)
+            .build();
+
+    new Convert(spark, convertOptions).convert();
   }
 }

@@ -19,19 +19,27 @@ public class Main {
     options.addOption("o", "output-table", true, "Output table");
     options.addOption("z", "size-of-id", true, "Size of ID fields, in bytes (default: 4)");
     options.addOption("f", "fanout", false, "Enable fanout write instead of sorting");
+    options.addOption("y", "dry-run", false, "Run process without writing to table");
+    options.addOption("g", "limit-input-gb", false, "Limit input in GB, for testing");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);
 
-    String metricDir = cmd.getOptionValue("m");
-    String uidDir = cmd.getOptionValue("u");
-    String outputTable = cmd.getOptionValue("o");
-    int idSize = cmd.hasOption("z") ? Integer.parseInt(cmd.getOptionValue("z")) : DEFAULT_ID_SIZE;
-    boolean fanout = cmd.hasOption("f");
+    ConvertOptions convertOptions =
+        ConvertOptions.builder()
+            .metricDir(cmd.getOptionValue("m"))
+            .uidDir(cmd.getOptionValue("u"))
+            .outputTable(cmd.getOptionValue("o"))
+            .idSize(
+                cmd.hasOption("z") ? Integer.parseInt(cmd.getOptionValue("z")) : DEFAULT_ID_SIZE)
+            .fanout(cmd.hasOption("f"))
+            .dryRun(cmd.hasOption("y"))
+            .limitGb(cmd.hasOption("g") ? Integer.parseInt(cmd.getOptionValue("g")) : 0)
+            .build();
 
     SparkConf conf = new SparkConf().setAppName("tsdb-import");
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
 
-    new Convert(spark, metricDir, uidDir, outputTable, idSize, fanout).convert();
+    new Convert(spark, convertOptions).convert();
   }
 }

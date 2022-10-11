@@ -11,7 +11,7 @@ Run using the `build/libs/convert-tsdb-all.jar` jar file:
 ```bash
 bin/spark-submit \
     --repositories https://tabular-repository-public.s3.amazonaws.com/releases \
-    --packages io.tabular:tabular-client-runtime:0.29.3,org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:0.14.1,org.apache.hadoop:hadoop-aws:3.3.2 \
+    --packages io.tabular:tabular-client-runtime:0.30.0,org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:0.14.1,org.apache.hadoop:hadoop-aws:3.3.2 \
     --driver-cores 8 \
     --driver-memory 16g \
     --executor-cores 4 \
@@ -43,5 +43,7 @@ Use the `--fanout` argument to enable fanout write instead of sorting. This will
 eliminate the sort but will also use more memory, especially if an HFile contains
 data for many hours. Also, fanout could create more files if data for the same
 hour is spread across multiple HFiles.
+
+Other options include `--limit-input-gb` and `--dry-run`, which can be used when testing.
 
 Adjust memory, cores, and other Spark settings as needed.

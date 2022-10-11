@@ -7,12 +7,14 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
+import org.sparkproject.guava.collect.Iterators;
 import scala.collection.JavaConverters;
 
 @AllArgsConstructor
@@ -29,20 +31,18 @@ public class Metric implements Serializable {
   private final double value;
   private final Timestamp ts;
 
-  public static List<Metric> fromCellData(
+  public static Iterator<Metric> fromCellData(
       CellData cellData,
       Map<Integer, String> metricMap,
       Map<Integer, String> tagKeyMap,
       Map<Integer, String> tagValueMap,
       int idSize) {
 
-    List<Metric> result = Lists.newArrayList();
-
     byte[] qualifierBytes = cellData.getQualifier();
 
     if (qualifierBytes.length == 3 || qualifierBytes.length == 5) {
       // this is an annotation or other non-datapoint object, filter these out
-      return result;
+      return Iterators.emptyIterator();
     }
 
     byte[] rowKey = cellData.getRowKey();
@@ -69,7 +69,7 @@ public class Metric implements Serializable {
     int tagCount = (rowKey.length - prefixSize) / (idSize * 2);
     int pos = prefixSize;
 
-    Map<String, String> tags = Maps.newHashMap();
+    Map<String, String> tags = Maps.newHashMapWithExpectedSize(tagCount);
     for (int i = 0; i < tagCount; i++) {
       byte[] tagk = new byte[idSize];
       byte[] tagv = new byte[idSize];
@@ -92,6 +92,8 @@ public class Metric implements Serializable {
       tags.put(tagkStr, tagvStr);
     }
 
+    List<Metric> result = Lists.newLinkedList();
+
     int numQualifiers = qualifierBytes.length / 2;
     int valueOffset = 0;
 
@@ -107,7 +109,7 @@ public class Metric implements Serializable {
 
       result.add(new Metric(metricName, tags, value, ts));
     }
-    return result;
+    return result.iterator();
   }
 
   private static double parseValue(

@@ -20,7 +20,7 @@ public class Main {
     options.addOption("z", "size-of-id", true, "Size of ID fields, in bytes (default: 4)");
     options.addOption("f", "fanout", false, "Enable fanout write instead of sorting");
     options.addOption("y", "dry-run", false, "Run process without writing to table");
-    options.addOption("g", "limit-input-gb", false, "Limit input in GB, for testing");
+    options.addOption("g", "limit-input-gb", true, "Limit input in GB, for testing");
 
     CommandLineParser parser = new BasicParser();
     CommandLine cmd = parser.parse(options, args);

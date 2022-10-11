@@ -98,10 +98,8 @@ public class Convert implements Serializable {
       while (fileStatusListIterator.hasNext()) {
         LocatedFileStatus fileStatus = fileStatusListIterator.next();
         String name = fileStatus.getPath().getName();
-        if (fileStatus.isFile()
-            && !name.startsWith(".tableinfo")
-            && !name.equals(".regioninfo")
-            && !name.endsWith("_$folder$")) {
+        // this will filter out non-HFiles with names such as .tableinfo, .regioninfo, xxxx.yyyy
+        if (fileStatus.isFile() && !name.contains(".") && !name.endsWith("_$folder$")) {
           result.add(fileStatus.getPath().toString());
         }
       }

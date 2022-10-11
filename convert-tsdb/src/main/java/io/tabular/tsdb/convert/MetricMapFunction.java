@@ -4,7 +4,6 @@ import com.google.common.collect.Maps;
 import io.tabular.tsdb.convert.model.CellData;
 import io.tabular.tsdb.convert.model.Metric;
 import io.tabular.tsdb.convert.model.UID;
-import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -15,9 +14,9 @@ class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
 
   private final Broadcast<List<UID>> uidBroadcast;
   private final int idSize;
-  private transient Map<ByteBuffer, String> metricMap;
-  private transient Map<ByteBuffer, String> tagKeyMap;
-  private transient Map<ByteBuffer, String> tagValueMap;
+  private transient Map<Integer, String> metricMap;
+  private transient Map<Integer, String> tagKeyMap;
+  private transient Map<Integer, String> tagValueMap;
 
   MetricMapFunction(Broadcast<List<UID>> uidBroadcast, int idSize) {
     this.uidBroadcast = uidBroadcast;
@@ -39,13 +38,13 @@ class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
     for (UID uid : uidList) {
       switch (uid.getQualifier()) {
         case "metrics":
-          metricMap.put(ByteBuffer.wrap(uid.getUid()), uid.getName());
+          metricMap.put(uid.getUid(), uid.getName());
           break;
         case "tagk":
-          tagKeyMap.put(ByteBuffer.wrap(uid.getUid()), uid.getName());
+          tagKeyMap.put(uid.getUid(), uid.getName());
           break;
         case "tagv":
-          tagValueMap.put(ByteBuffer.wrap(uid.getUid()), uid.getName());
+          tagValueMap.put(uid.getUid(), uid.getName());
           break;
       }
     }

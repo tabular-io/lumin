@@ -1,9 +1,11 @@
 package io.tabular.tsdb.convert.model;
 
+import static io.tabular.tsdb.convert.Utilities.bytesToInt;
+import static io.tabular.tsdb.convert.Utilities.bytesToLong;
+
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
-import java.nio.ByteBuffer;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -29,9 +31,9 @@ public class Metric implements Serializable {
 
   public static List<Metric> fromCellData(
       CellData cellData,
-      Map<ByteBuffer, String> metricMap,
-      Map<ByteBuffer, String> tagKeyMap,
-      Map<ByteBuffer, String> tagValueMap,
+      Map<Integer, String> metricMap,
+      Map<Integer, String> tagKeyMap,
+      Map<Integer, String> tagValueMap,
       int idSize) {
 
     List<Metric> result = Lists.newArrayList();
@@ -55,14 +57,14 @@ public class Metric implements Serializable {
 
     byte[] metricId = new byte[idSize];
     System.arraycopy(rowKey, SALT_SIZE, metricId, 0, idSize);
-    String metricName = metricMap.get(ByteBuffer.wrap(metricId));
+    String metricName = metricMap.get(bytesToInt(metricId));
     if (metricName == null) {
       throw new RuntimeException("Unable to map metric ID to name");
     }
 
     byte[] tsBytes = new byte[TS_SIZE];
     System.arraycopy(rowKey, SALT_SIZE + idSize, tsBytes, 0, TS_SIZE);
-    long baseMillis = ByteBuffer.wrap(tsBytes).getInt() * 1000L;
+    long baseMillis = bytesToInt(tsBytes) * 1000L;
 
     int tagCount = (rowKey.length - prefixSize) / (idSize * 2);
     int pos = prefixSize;
@@ -77,12 +79,12 @@ public class Metric implements Serializable {
       System.arraycopy(rowKey, pos, tagv, 0, idSize);
       pos += idSize;
 
-      String tagkStr = tagKeyMap.get(ByteBuffer.wrap(tagk));
+      String tagkStr = tagKeyMap.get(bytesToInt(tagk));
       if (tagkStr == null) {
         throw new RuntimeException("Unable to map tag key to name");
       }
 
-      String tagvStr = tagValueMap.get(ByteBuffer.wrap(tagv));
+      String tagvStr = tagValueMap.get(bytesToInt(tagv));
       if (tagvStr == null) {
         throw new RuntimeException("Unable to map tag value to name");
       }
@@ -94,7 +96,7 @@ public class Metric implements Serializable {
     int valueOffset = 0;
 
     for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {
-      short qualifier = ByteBuffer.wrap(qualifierBytes, qualifierOffset, 2).getShort();
+      int qualifier = bytesToInt(qualifierBytes, qualifierOffset, 2);
       int offsetSec = qualifier >> 4;
       Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
 
@@ -123,22 +125,22 @@ public class Metric implements Serializable {
         if (!isInt) {
           throw new RuntimeException("Invalid float length: " + valueLen);
         }
-        value = ByteBuffer.wrap(valueBytes, valueOffset, 2).getShort();
+        value = bytesToInt(valueBytes, valueOffset, valueLen);
         break;
 
       case 4:
         if (isInt) {
-          value = ByteBuffer.wrap(valueBytes, valueOffset, 4).getInt();
+          value = bytesToInt(valueBytes, valueOffset, valueLen);
         } else {
-          value = ByteBuffer.wrap(valueBytes, valueOffset, 4).getFloat();
+          value = Float.intBitsToFloat(bytesToInt(valueBytes, valueOffset, valueLen));
         }
         break;
 
       case 8:
         if (isInt) {
-          value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getLong();
+          value = bytesToLong(valueBytes, valueOffset, valueLen);
         } else {
-          value = ByteBuffer.wrap(valueBytes, valueOffset, 8).getDouble();
+          value = Double.longBitsToDouble(bytesToLong(valueBytes, valueOffset, valueLen));
         }
         break;
 

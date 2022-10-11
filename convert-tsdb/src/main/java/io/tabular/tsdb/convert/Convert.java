@@ -9,8 +9,11 @@ import io.tabular.tsdb.convert.model.Metric;
 import io.tabular.tsdb.convert.model.UID;
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
 import org.apache.hadoop.fs.Path;
@@ -88,7 +91,7 @@ public class Convert implements Serializable {
       Path path = new Path(sourceDir);
       FileSystem fs = path.getFileSystem(spark.sparkContext().hadoopConfiguration());
 
-      List<String> result = Lists.newArrayList();
+      List<FileStatus> fileList = Lists.newArrayList();
       long size = 0;
       RemoteIterator<LocatedFileStatus> fileStatusListIterator = fs.listFiles(path, true);
       while (fileStatusListIterator.hasNext()) {
@@ -97,7 +100,7 @@ public class Convert implements Serializable {
 
         // this will filter out non-HFiles with names such as .tableinfo, .regioninfo, xxxx.yyyy
         if (fileStatus.isFile() && !name.contains(".") && !name.endsWith("_$folder$")) {
-          result.add(fileStatus.getPath().toString());
+          fileList.add(fileStatus);
           size += fileStatus.getLen();
         }
 
@@ -105,7 +108,12 @@ public class Convert implements Serializable {
           break;
         }
       }
-      return result;
+
+      // sort so we process the largest files first, to prevent long tail at the end of the job
+      return fileList.stream()
+          .sorted(Comparator.comparingLong(FileStatus::getLen).reversed())
+          .map(fileStatus -> fileStatus.getPath().toString())
+          .collect(Collectors.toList());
     } catch (IOException x) {
       throw new RuntimeException(x);
     }

@@ -1,7 +1,7 @@
 package io.tabular.tsdb.convert;
 
 import static org.apache.spark.sql.functions.col;
-import static org.apache.spark.sql.functions.hours;
+import static org.apache.spark.sql.functions.days;
 
 import com.google.common.collect.Lists;
 import io.tabular.tsdb.convert.model.CellData;
@@ -60,13 +60,13 @@ public class Convert implements Serializable {
       System.out.println("*** Row count: " + df.count());
     } else if (convertOptions.isFanout()) {
       df.writeTo(convertOptions.getOutputTable())
-          .partitionedBy(hours(col("ts")))
+          .partitionedBy(days(col("time")))
           .option("fanout-enabled", true)
           .createOrReplace();
     } else {
       df.orderBy(col("ts"))
           .writeTo(convertOptions.getOutputTable())
-          .partitionedBy(hours(col("ts")))
+          .partitionedBy(days(col("time")))
           .createOrReplace();
     }
   }

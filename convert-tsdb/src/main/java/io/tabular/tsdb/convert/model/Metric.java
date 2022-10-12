@@ -21,15 +21,29 @@ import scala.collection.JavaConverters;
 public class Metric implements Serializable {
 
   public static final StructType SCHEMA =
-      StructType.fromDDL("metric STRING, ts TIMESTAMP, value DOUBLE, tags MAP<STRING, STRING>");
+      StructType.fromDDL(
+          "metric STRING,"
+              + "time TIMESTAMP,"
+              + "value DOUBLE,"
+              + "lsp_id INT,"
+              + "circuit_id INT,"
+              + "power_sign STRING,"
+              + "tags MAP<STRING, STRING>");
 
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
 
+  private static final String LSP_ID_TAG = "bot";
+  private static final String CIRCUIT_ID_TAG = "circuit";
+  private static final String POWER_SIGN_TAG = "sign";
+
   private final String metricName;
-  private final Map<String, String> tags;
-  private final double value;
   private final Timestamp ts;
+  private final double value;
+  private final Integer lspId;
+  private final Integer circuitId;
+  private final String powerSign;
+  private final Map<String, String> tags;
 
   public static Iterator<Metric> fromCellData(
       CellData cellData,
@@ -70,6 +84,8 @@ public class Metric implements Serializable {
     int pos = prefixSize;
 
     Map<String, String> tags = Maps.newHashMapWithExpectedSize(tagCount);
+    Integer lspId = null, circuitId = null;
+    String powerSign = null;
     for (int i = 0; i < tagCount; i++) {
       byte[] tagk = new byte[idSize];
       byte[] tagv = new byte[idSize];
@@ -89,7 +105,19 @@ public class Metric implements Serializable {
         throw new RuntimeException("Unable to map tag value to name");
       }
 
-      tags.put(tagkStr, tagvStr);
+      switch (tagkStr) {
+        case LSP_ID_TAG:
+          lspId = Integer.parseInt(tagvStr);
+          break;
+        case CIRCUIT_ID_TAG:
+          circuitId = Integer.parseInt(tagvStr);
+          break;
+        case POWER_SIGN_TAG:
+          powerSign = tagvStr;
+          break;
+        default:
+          tags.put(tagkStr, tagvStr);
+      }
     }
 
     List<Metric> result = Lists.newLinkedList();
@@ -107,7 +135,7 @@ public class Metric implements Serializable {
       double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
       valueOffset += valueLen;
 
-      result.add(new Metric(metricName, tags, value, ts));
+      result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
     }
     return result.iterator();
   }
@@ -154,6 +182,7 @@ public class Metric implements Serializable {
   }
 
   public Row toRow() {
-    return RowFactory.create(metricName, ts, value, JavaConverters.mapAsScalaMap(tags));
+    return RowFactory.create(
+        metricName, ts, value, lspId, circuitId, powerSign, JavaConverters.mapAsScalaMap(tags));
   }
 }

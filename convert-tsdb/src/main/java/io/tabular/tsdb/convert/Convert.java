@@ -92,7 +92,7 @@ public class Convert implements Serializable {
           .option("fanout-enabled", true)
           .createOrReplace();
     } else {
-      df.orderBy(col("ts"))
+      df.orderBy(col("time"))
           .writeTo(convertOptions.getOutputTable())
           .partitionedBy(days(col("time")))
           .createOrReplace();

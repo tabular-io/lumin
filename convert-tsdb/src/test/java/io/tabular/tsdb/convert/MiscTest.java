@@ -10,7 +10,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import org.apache.spark.SparkConf;
-import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.sql.SparkSession;
@@ -28,7 +27,6 @@ public class MiscTest {
   public void analyze() {
     SparkConf conf = new SparkConf().setMaster("local[*]").setAppName("tsdb-analyze");
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
-    SparkContext ctx = spark.sparkContext();
     JavaRDD<Timestamp> rdd =
         new JavaSparkContext(spark.sparkContext())
             .parallelize(Arrays.asList("file:/Users/bryan/Downloads/lumin-sample.hfile"))

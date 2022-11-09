@@ -30,8 +30,6 @@ public class Count implements Serializable {
 
     long cnt = new Count(spark, dir).count();
 
-    // this only counts records, not number of values (e.g. in compacted records)
-
     System.out.println("******* Record count: " + cnt);
   }
 

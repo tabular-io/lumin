@@ -3,21 +3,17 @@ package io.tabular.tsdb.convert;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.days;
 
-import com.google.common.collect.Lists;
 import io.tabular.tsdb.convert.model.CellData;
 import io.tabular.tsdb.convert.model.Metric;
 import io.tabular.tsdb.convert.model.UID;
-import java.io.IOException;
 import java.io.Serializable;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
-import org.apache.hadoop.fs.FileStatus;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocatedFileStatus;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.fs.RemoteIterator;
+import org.apache.commons.cli.BasicParser;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.Options;
+import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
@@ -30,11 +26,43 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder;
 
 public class Convert implements Serializable {
 
+  private static final int DEFAULT_ID_SIZE = 4;
+
   private final SparkSession spark;
   private final JavaSparkContext sparkContext;
   private final ConvertOptions convertOptions;
 
-  private static final long GB_BYTES = 1_000_000_000;
+  public static void main(String[] args) throws Exception {
+    Options options = new Options();
+
+    options.addOption("m", "metric-dir", true, "Directory containing metric data files");
+    options.addOption("u", "uid-dir", true, "Directory containing UID data files");
+    options.addOption("o", "output-table", true, "Output table");
+    options.addOption("z", "size-of-id", true, "Size of ID fields, in bytes (default: 4)");
+    options.addOption("f", "fanout", false, "Enable fanout write instead of sorting");
+    options.addOption("y", "dry-run", false, "Run process without writing to table");
+    options.addOption("g", "limit-input-gb", true, "Limit input in GB, for testing");
+
+    CommandLineParser parser = new BasicParser();
+    CommandLine cmd = parser.parse(options, args);
+
+    ConvertOptions convertOptions =
+        ConvertOptions.builder()
+            .metricDir(cmd.getOptionValue("m"))
+            .uidDir(cmd.getOptionValue("u"))
+            .outputTable(cmd.getOptionValue("o"))
+            .idSize(
+                cmd.hasOption("z") ? Integer.parseInt(cmd.getOptionValue("z")) : DEFAULT_ID_SIZE)
+            .fanout(cmd.hasOption("f"))
+            .dryRun(cmd.hasOption("y"))
+            .limitGb(cmd.hasOption("g") ? Integer.parseInt(cmd.getOptionValue("g")) : 0)
+            .build();
+
+    SparkConf conf = new SparkConf().setAppName("tsdb-import");
+    SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
+
+    new Convert(spark, convertOptions).convert();
+  }
 
   public Convert(SparkSession spark, ConvertOptions convertOptions) {
     this.spark = spark;
@@ -43,11 +71,11 @@ public class Convert implements Serializable {
   }
 
   public void convert() {
-    List<UID> uidList = mapHFiles(convertOptions.getUidDir(), UID::fromCellData).collect();
+    List<UID> uidList = mapUidHFiles(convertOptions.getUidDir(), UID::fromCellData).collect();
     Broadcast<List<UID>> uidBroadcast = sparkContext.broadcast(uidList);
 
     JavaRDD<Metric> metricRdd =
-        flatMapHFiles(
+        flatMapMetricHFiles(
             convertOptions.getMetricDir(),
             new MetricMapFunction(uidBroadcast, convertOptions.getIdSize()));
     writeOutput(metricRdd);
@@ -71,51 +99,18 @@ public class Convert implements Serializable {
     }
   }
 
-  private <T> JavaRDD<T> mapHFiles(String sourceDir, Function<CellData, T> fn) {
-    return createRDD(sourceDir).map(fn).filter(Objects::nonNull);
+  private <T> JavaRDD<T> mapUidHFiles(String sourceDir, Function<CellData, T> fn) {
+    return createRDD(sourceDir, 0).map(fn).filter(Objects::nonNull);
   }
 
-  private <T> JavaRDD<T> flatMapHFiles(String sourceDir, FlatMapFunction<CellData, T> fn) {
-    return createRDD(sourceDir).flatMap(fn).filter(Objects::nonNull);
+  private <T> JavaRDD<T> flatMapMetricHFiles(String sourceDir, FlatMapFunction<CellData, T> fn) {
+    return createRDD(sourceDir, convertOptions.getLimitGb()).flatMap(fn).filter(Objects::nonNull);
   }
 
-  private JavaRDD<CellData> createRDD(String sourceDir) {
-    List<String> files = sourceFiles(sourceDir);
+  private JavaRDD<CellData> createRDD(String sourceDir, int limitGb) {
+    List<String> files = Utilities.sourceFiles(sparkContext, sourceDir, limitGb);
     return sparkContext
         .parallelize(files, files.size())
-        .flatMap(new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())));
-  }
-
-  private List<String> sourceFiles(String sourceDir) {
-    try {
-      Path path = new Path(sourceDir);
-      FileSystem fs = path.getFileSystem(spark.sparkContext().hadoopConfiguration());
-
-      List<FileStatus> fileList = Lists.newArrayList();
-      long size = 0;
-      RemoteIterator<LocatedFileStatus> fileStatusListIterator = fs.listFiles(path, true);
-      while (fileStatusListIterator.hasNext()) {
-        LocatedFileStatus fileStatus = fileStatusListIterator.next();
-        String name = fileStatus.getPath().getName();
-
-        // this will filter out non-HFiles with names such as .tableinfo, .regioninfo, xxxx.yyyy
-        if (fileStatus.isFile() && !name.contains(".") && !name.endsWith("_$folder$")) {
-          fileList.add(fileStatus);
-          size += fileStatus.getLen();
-        }
-
-        if (convertOptions.getLimitGb() > 0 && size > convertOptions.getLimitGb() * GB_BYTES) {
-          break;
-        }
-      }
-
-      // sort so we process the largest files first, to prevent long tail at the end of the job
-      return fileList.stream()
-          .sorted(Comparator.comparingLong(FileStatus::getLen).reversed())
-          .map(fileStatus -> fileStatus.getPath().toString())
-          .collect(Collectors.toList());
-    } catch (IOException x) {
-      throw new RuntimeException(x);
-    }
+        .flatMap(new HFileToCellData(new ConfigHolder(sparkContext.hadoopConfiguration())));
   }
 }

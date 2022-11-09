@@ -15,7 +15,7 @@ ext {
   sparkVersion = "3.3.0"
   hbaseVersion = "2.4.10"
   hadoopVersion = "3.3.2"
-  icebergVersion = "0.14.1"
+  icebergVersion = "1.0.0"
   tabularVersion = "0.29.3"
   junitVersion = "5.8.2"
 }
@@ -53,7 +53,7 @@ configurations {
 jar {
   manifest {
     attributes(
-        "Main-Class": "io.tabular.tsdb.convert.Main"
+        "Main-Class": "io.tabular.tsdb.convert.Convert"
     )
   }
 }

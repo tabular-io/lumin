@@ -121,11 +121,11 @@ public class Metric implements Serializable {
     }
 
     List<Metric> result = Lists.newLinkedList();
-
-    int numQualifiers = qualifierBytes.length / 2;
     int valueOffset = 0;
 
-    for (int qualifierOffset = 0; qualifierOffset < numQualifiers; qualifierOffset += 2) {
+    for (int qualifierOffset = 0;
+        qualifierOffset < qualifierBytes.length - 1;
+        qualifierOffset += 2) {
       int qualifier = bytesToInt(qualifierBytes, qualifierOffset, 2);
       int offsetSec = qualifier >> 4;
       Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));

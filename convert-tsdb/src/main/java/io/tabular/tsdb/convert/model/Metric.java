@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +38,8 @@ public class Metric implements Serializable {
   private static final String CIRCUIT_ID_TAG = "circuit";
   private static final String POWER_SIGN_TAG = "sign";
 
+  private static final byte[] APPEND_QUALIFIER = new byte[] {0x05, 0x00, 0x00};
+
   private final String metricName;
   private final Timestamp ts;
   private final double value;
@@ -54,13 +57,17 @@ public class Metric implements Serializable {
 
     byte[] qualifierBytes = cellData.getQualifier();
 
-    if (qualifierBytes.length == 3 || qualifierBytes.length == 5) {
+    boolean appendDataPoint = false;
+    if ((qualifierBytes.length == 3 || qualifierBytes.length == 5) && qualifierBytes[0] == 0x01) {
       // this is an annotation or other non-datapoint object, filter these out
       return Iterators.emptyIterator();
+    } else if (Arrays.equals(qualifierBytes, APPEND_QUALIFIER)) {
+      appendDataPoint = true;
+    } else if (qualifierBytes.length % 2 != 0) {
+      throw new RuntimeException("Invalid qualifier");
     }
 
     byte[] rowKey = cellData.getRowKey();
-    byte[] valueBytes = cellData.getValue();
 
     int prefixSize = SALT_SIZE + TS_SIZE + idSize;
 
@@ -121,22 +128,47 @@ public class Metric implements Serializable {
     }
 
     List<Metric> result = Lists.newLinkedList();
+    byte[] valueBytes = cellData.getValue();
     int valueOffset = 0;
 
-    for (int qualifierOffset = 0;
-        qualifierOffset < qualifierBytes.length - 1;
-        qualifierOffset += 2) {
-      int qualifier = bytesToInt(qualifierBytes, qualifierOffset, 2);
-      int offsetSec = qualifier >> 4;
-      Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
+    if (!appendDataPoint) {
+      for (int qualifierOffset = 0;
+          qualifierOffset < qualifierBytes.length - 1;
+          qualifierOffset += 2) {
+        int qualifier = bytesToInt(qualifierBytes, qualifierOffset, 2);
+        int offsetSec = qualifier >> 4;
+        Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
 
-      boolean isInt = (qualifier & 0b1000) == 0;
-      int valueLen = (qualifier & 0b111) + 1;
-      double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
-      valueOffset += valueLen;
+        boolean isInt = (qualifier & 0b1000) == 0;
+        int valueLen = (qualifier & 0b111) + 1;
+        double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
+        valueOffset += valueLen;
 
-      result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
+        result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
+      }
+
+      if (result.size() == 1 && valueOffset < valueBytes.length) {
+        throw new RuntimeException("Value bytes not fully utilized");
+      } else if (result.size() > 1
+          && (valueOffset != valueBytes.length - 1 || valueBytes[valueOffset] != 0)) {
+        throw new RuntimeException("Value bytes not fully utilized");
+      }
+    } else {
+      while (valueOffset < valueBytes.length) {
+        int qualifier = bytesToInt(valueBytes, valueOffset, 2);
+        valueOffset += 2;
+        int offsetSec = qualifier >> 4;
+        Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
+
+        boolean isInt = (qualifier & 0b1000) == 0;
+        int valueLen = (qualifier & 0b111) + 1;
+        double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
+        valueOffset += valueLen;
+
+        result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
+      }
     }
+
     return result.iterator();
   }
 

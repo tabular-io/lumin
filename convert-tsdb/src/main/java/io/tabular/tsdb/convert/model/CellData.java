@@ -11,11 +11,13 @@ public class CellData implements Serializable {
   private final byte[] family;
   private final byte[] qualifier;
   private final byte[] value;
+  private final String file;
 
-  public CellData(Cell cell) {
+  public CellData(Cell cell, String file) {
     this.rowKey = CellUtil.cloneRow(cell);
     this.family = CellUtil.cloneFamily(cell);
     this.qualifier = CellUtil.cloneQualifier(cell);
     this.value = CellUtil.cloneValue(cell);
+    this.file = file;
   }
 }

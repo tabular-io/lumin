@@ -28,7 +28,12 @@ class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
     if (metricMap == null) {
       loadMaps(uidBroadcast.value());
     }
-    return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap, idSize);
+
+    try {
+      return Metric.fromCellData(cellData, metricMap, tagKeyMap, tagValueMap, idSize);
+    } catch (Exception x) {
+      throw new RuntimeException("Metric decoding error in file: " + cellData.getFile(), x);
+    }
   }
 
   private void loadMaps(List<UID> uidList) {

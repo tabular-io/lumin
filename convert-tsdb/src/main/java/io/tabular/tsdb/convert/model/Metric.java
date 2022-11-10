@@ -114,10 +114,18 @@ public class Metric implements Serializable {
 
       switch (tagkStr) {
         case LSP_ID_TAG:
-          lspId = Integer.parseInt(tagvStr);
+          try {
+            lspId = Integer.parseInt(tagvStr);
+          } catch (NumberFormatException x) {
+            System.out.println("***** WARNING: Unable to set lsp ID: " + tagvStr);
+          }
           break;
         case CIRCUIT_ID_TAG:
-          circuitId = Integer.parseInt(tagvStr);
+          try {
+            circuitId = Integer.parseInt(tagvStr);
+          } catch (NumberFormatException x) {
+            System.out.println("***** WARNING: Unable to set circuit ID: " + tagvStr);
+          }
           break;
         case POWER_SIGN_TAG:
           powerSign = tagvStr;

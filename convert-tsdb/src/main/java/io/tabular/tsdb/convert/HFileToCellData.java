@@ -43,7 +43,7 @@ class HFileToCellData implements FlatMapFunction<String, CellData> {
       @Override
       @SneakyThrows
       public CellData next() {
-        CellData value = new CellData(scanner.getCell());
+        CellData value = new CellData(scanner.getCell(), file);
         hasNext = scanner.next();
 
         if (!hasNext) {

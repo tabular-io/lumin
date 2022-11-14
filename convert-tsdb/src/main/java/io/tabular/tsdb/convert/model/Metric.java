@@ -55,6 +55,10 @@ public class Metric implements Serializable {
       Map<Integer, String> tagValueMap,
       int idSize) {
 
+    if (cellData.getFamily().length != 1 || cellData.getFamily()[0] != 't') {
+      return null;
+    }
+
     byte[] qualifierBytes = cellData.getQualifier();
 
     boolean appendDataPoint = false;

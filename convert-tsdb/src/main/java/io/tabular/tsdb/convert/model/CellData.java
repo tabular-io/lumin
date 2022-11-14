@@ -12,12 +12,14 @@ public class CellData implements Serializable {
   private final byte[] qualifier;
   private final byte[] value;
   private final String file;
+  private long version;
 
   public CellData(Cell cell, String file) {
     this.rowKey = CellUtil.cloneRow(cell);
     this.family = CellUtil.cloneFamily(cell);
     this.qualifier = CellUtil.cloneQualifier(cell);
     this.value = CellUtil.cloneValue(cell);
+    this.version = cell.getTimestamp();
     this.file = file;
   }
 }

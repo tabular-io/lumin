@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.types.StructType;
@@ -19,6 +20,7 @@ import org.sparkproject.guava.collect.Iterators;
 import scala.collection.JavaConverters;
 
 @AllArgsConstructor
+@Getter
 public class Metric implements Serializable {
 
   public static final StructType SCHEMA =
@@ -47,6 +49,7 @@ public class Metric implements Serializable {
   private final Integer circuitId;
   private final String powerSign;
   private final Map<String, String> tags;
+  private final String file;
 
   public static Iterator<Metric> fromCellData(
       CellData cellData,
@@ -156,7 +159,9 @@ public class Metric implements Serializable {
         double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
         valueOffset += valueLen;
 
-        result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
+        result.add(
+            new Metric(
+                metricName, ts, value, lspId, circuitId, powerSign, tags, cellData.getFile()));
       }
 
       if (result.size() == 1 && valueOffset < valueBytes.length) {
@@ -177,7 +182,9 @@ public class Metric implements Serializable {
         double value = parseValue(isInt, valueBytes, valueOffset, valueLen);
         valueOffset += valueLen;
 
-        result.add(new Metric(metricName, ts, value, lspId, circuitId, powerSign, tags));
+        result.add(
+            new Metric(
+                metricName, ts, value, lspId, circuitId, powerSign, tags, cellData.getFile()));
       }
     }
 

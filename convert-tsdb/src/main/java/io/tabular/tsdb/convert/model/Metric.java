@@ -49,6 +49,7 @@ public class Metric implements Serializable {
   private final Integer circuitId;
   private final String powerSign;
   private final Map<String, String> tags;
+  private final byte[] salt;
   private final String file;
 
   public static Iterator<Metric> fromCellData(
@@ -75,6 +76,9 @@ public class Metric implements Serializable {
     }
 
     byte[] rowKey = cellData.getRowKey();
+
+    byte[] salt = new byte[SALT_SIZE];
+    System.arraycopy(rowKey, 0, salt, 0, SALT_SIZE);
 
     int prefixSize = SALT_SIZE + TS_SIZE + idSize;
 
@@ -161,7 +165,15 @@ public class Metric implements Serializable {
 
         result.add(
             new Metric(
-                metricName, ts, value, lspId, circuitId, powerSign, tags, cellData.getFile()));
+                metricName,
+                ts,
+                value,
+                lspId,
+                circuitId,
+                powerSign,
+                tags,
+                salt,
+                cellData.getFile()));
       }
 
       if (result.size() == 1 && valueOffset < valueBytes.length) {
@@ -184,7 +196,15 @@ public class Metric implements Serializable {
 
         result.add(
             new Metric(
-                metricName, ts, value, lspId, circuitId, powerSign, tags, cellData.getFile()));
+                metricName,
+                ts,
+                value,
+                lspId,
+                circuitId,
+                powerSign,
+                tags,
+                salt,
+                cellData.getFile()));
       }
     }
 

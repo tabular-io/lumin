@@ -2,6 +2,7 @@ package io.tabular.tsdb.convert.model;
 
 import static io.tabular.tsdb.convert.Utilities.bytesToInt;
 import static io.tabular.tsdb.convert.Utilities.bytesToLong;
+import static io.tabular.tsdb.convert.Utilities.bytesToShort;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
@@ -226,7 +227,7 @@ public class Metric implements Serializable {
         if (!isInt) {
           throw new RuntimeException("Invalid float length: " + valueLen);
         }
-        value = bytesToInt(valueBytes, valueOffset, valueLen);
+        value = bytesToShort(valueBytes, valueOffset, valueLen);
         break;
 
       case 4:

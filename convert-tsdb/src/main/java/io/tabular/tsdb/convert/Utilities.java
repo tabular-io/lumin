@@ -16,6 +16,19 @@ public class Utilities {
 
   private static final long GB_BYTES = 1_000_000_000;
 
+  public static short bytesToShort(byte[] bytes, int offset, int len) {
+    if (len > 2) {
+      throw new RuntimeException("Invalid number of bytes for short: " + len);
+    }
+
+    // little-endian
+    short result = 0;
+    for (int i = offset; i < offset + len; i++) {
+      result = (short) ((result << 8) | (bytes[i] & 0xff));
+    }
+    return result;
+  }
+
   public static int bytesToInt(byte[] bytes) {
     return bytesToInt(bytes, 0, bytes.length);
   }

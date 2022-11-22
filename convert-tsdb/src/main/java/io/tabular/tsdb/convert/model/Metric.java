@@ -8,6 +8,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import java.io.Serializable;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -36,6 +37,7 @@ public class Metric implements Serializable {
 
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
+  private static final long HOUR_MILLIS = Duration.ofHours(1).toMillis();
 
   private static final String LSP_ID_TAG = "bot";
   private static final String CIRCUIT_ID_TAG = "circuit";
@@ -61,7 +63,7 @@ public class Metric implements Serializable {
       int idSize) {
 
     if (cellData.getFamily().length != 1 || cellData.getFamily()[0] != 't') {
-      return null;
+      return Iterators.emptyIterator();
     }
 
     byte[] qualifierBytes = cellData.getQualifier();
@@ -97,7 +99,7 @@ public class Metric implements Serializable {
 
     byte[] tsBytes = new byte[TS_SIZE];
     System.arraycopy(rowKey, SALT_SIZE + idSize, tsBytes, 0, TS_SIZE);
-    long baseMillis = bytesToInt(tsBytes) * 1000L;
+    long baseMillis = bytesToLong(tsBytes, 0, 4) * 1000L;
 
     int tagCount = (rowKey.length - prefixSize) / (idSize * 2);
     int pos = prefixSize;
@@ -156,8 +158,13 @@ public class Metric implements Serializable {
           qualifierOffset < qualifierBytes.length - 1;
           qualifierOffset += 2) {
         int qualifier = bytesToInt(qualifierBytes, qualifierOffset, 2);
-        int offsetSec = qualifier >> 4;
-        Timestamp ts = new Timestamp(baseMillis + (1000L * offsetSec));
+        long offsetMillis = (qualifier >> 4) * 1000L;
+
+        if (offsetMillis < 0 || offsetMillis > HOUR_MILLIS) {
+          throw new RuntimeException("Invalid offset millis: " + offsetMillis);
+        }
+
+        Timestamp ts = new Timestamp(baseMillis + offsetMillis);
 
         boolean isInt = (qualifier & 0b1000) == 0;
         int valueLen = (qualifier & 0b111) + 1;

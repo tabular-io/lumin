@@ -40,17 +40,29 @@ class MetricMapFunction implements FlatMapFunction<CellData, Metric> {
     metricMap = Maps.newHashMap();
     tagKeyMap = Maps.newHashMap();
     tagValueMap = Maps.newHashMap();
+
     for (UID uid : uidList) {
       switch (uid.getQualifier()) {
         case "metrics":
+          if (metricMap.containsKey(uid.getUid())) {
+            throw new RuntimeException("Duplicate UID");
+          }
           metricMap.put(uid.getUid(), uid.getName());
           break;
         case "tagk":
+          if (tagKeyMap.containsKey(uid.getUid())) {
+            throw new RuntimeException("Duplicate UID");
+          }
           tagKeyMap.put(uid.getUid(), uid.getName());
           break;
         case "tagv":
+          if (tagValueMap.containsKey(uid.getUid())) {
+            throw new RuntimeException("Duplicate UID");
+          }
           tagValueMap.put(uid.getUid(), uid.getName());
           break;
+        default:
+          throw new RuntimeException("Unknown UID qualifier: " + uid.getQualifier());
       }
     }
   }

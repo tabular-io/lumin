@@ -27,14 +27,11 @@ bin/spark-submit \
     --conf spark.sql.catalog.tabular.credential=$TABULAR_CREDS \
     --conf spark.sql.defaultCatalog=tabular \
     convert-tsdb-all.jar \
-      --metric-dir s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb \
-      --uid-dir s3://lumin-prod-hadoop/legacy/archive/data/default/tsdb-uid \
+      --metric-dir s3://.../tsdb \
+      --uid-dir s3://.../tsdb-uid \
       --output-table default.lumin_metrics \
       --size-of-id 3
 ```
-
-For a large source dataset, you may not see job progress for several minutes as the
-planning phase can take some time.
 
 Set `--size-of-id 3` for the legacy data format with 3 byte IDs. Newer format IDs are 4 bytes
 and that is the default if not set.

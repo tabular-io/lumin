@@ -29,7 +29,7 @@ public class MiscTest {
     SparkSession spark = SparkSession.builder().config(conf).getOrCreate();
     JavaRDD<Timestamp> rdd =
         new JavaSparkContext(spark.sparkContext())
-            .parallelize(Arrays.asList("file:/Users/bryan/Downloads/lumin-sample.hfile"))
+            .parallelize(Arrays.asList("file:/Users/bryan/Downloads/sample.hfile"))
             .flatMap(
                 new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())))
             .flatMap(MiscTest::extractTimestamp);

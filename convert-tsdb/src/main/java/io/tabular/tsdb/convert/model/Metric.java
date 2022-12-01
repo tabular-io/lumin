@@ -34,7 +34,8 @@ public class Metric implements Serializable {
               + "circuit_id INT,"
               + "power_sign STRING,"
               + "tags MAP<STRING, STRING>,"
-              + "version BIGINT");
+              + "version BIGINT,"
+              + "idx INT");
 
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
@@ -55,6 +56,7 @@ public class Metric implements Serializable {
   private final Map<String, String> tags;
   private final byte[] salt;
   private final long version;
+  private final int idx;
   private final String file;
 
   public static Iterator<Metric> fromCellData(
@@ -156,6 +158,7 @@ public class Metric implements Serializable {
     int valueOffset = 0;
 
     if (!appendDataPoint) {
+      int idx = 0;
       for (int qualifierOffset = 0;
           qualifierOffset < qualifierBytes.length - 1;
           qualifierOffset += 2) {
@@ -184,6 +187,7 @@ public class Metric implements Serializable {
                 tags,
                 salt,
                 cellData.getVersion(),
+                idx++,
                 cellData.getFile()));
       }
 
@@ -194,6 +198,7 @@ public class Metric implements Serializable {
         throw new RuntimeException("Value bytes not fully utilized");
       }
     } else {
+      int idx = 0;
       while (valueOffset < valueBytes.length) {
         int qualifier = bytesToInt(valueBytes, valueOffset, 2);
         valueOffset += 2;
@@ -216,6 +221,7 @@ public class Metric implements Serializable {
                 tags,
                 salt,
                 cellData.getVersion(),
+                idx++,
                 cellData.getFile()));
       }
     }
@@ -273,6 +279,7 @@ public class Metric implements Serializable {
         circuitId,
         powerSign,
         JavaConverters.mapAsScalaMap(tags),
-        version);
+        version,
+        idx);
   }
 }

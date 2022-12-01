@@ -68,16 +68,16 @@ public class Search implements Serializable {
 
     // TODO: make these config options
     String metricFilter = "power";
-    int circuitIdFilter = 594242;
-    long start = Instant.parse("2020-04-03T08:51:00Z").toEpochMilli();
-    long end = Instant.parse("2020-04-04T08:51:00Z").toEpochMilli();
+    Integer lspId = 2400;
+    long start = Instant.parse("2021-04-02T10:50:00Z").toEpochMilli();
+    long end = Instant.parse("2021-04-03T10:50:00Z").toEpochMilli();
 
     List<String> foundInFiles =
         metricRdd
             .filter(
                 metric ->
-                    metric.getMetricName().equals(metricFilter)
-                        && metric.getCircuitId() == circuitIdFilter
+                    metricFilter.equals(metric.getMetricName())
+                        && lspId.equals(metric.getLspId())
                         && metric.getTs().getTime() >= start
                         && metric.getTs().getTime() <= end)
             .map(Metric::getFile)

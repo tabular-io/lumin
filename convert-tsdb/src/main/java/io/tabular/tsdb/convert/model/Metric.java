@@ -33,7 +33,8 @@ public class Metric implements Serializable {
               + "lsp_id INT,"
               + "circuit_id INT,"
               + "power_sign STRING,"
-              + "tags MAP<STRING, STRING>");
+              + "tags MAP<STRING, STRING>,"
+              + "version BIGINT");
 
   private static final int SALT_SIZE = 1;
   private static final int TS_SIZE = 4;
@@ -53,6 +54,7 @@ public class Metric implements Serializable {
   private final String powerSign;
   private final Map<String, String> tags;
   private final byte[] salt;
+  private final long version;
   private final String file;
 
   public static Iterator<Metric> fromCellData(
@@ -181,6 +183,7 @@ public class Metric implements Serializable {
                 powerSign,
                 tags,
                 salt,
+                cellData.getVersion(),
                 cellData.getFile()));
       }
 
@@ -212,6 +215,7 @@ public class Metric implements Serializable {
                 powerSign,
                 tags,
                 salt,
+                cellData.getVersion(),
                 cellData.getFile()));
       }
     }
@@ -262,6 +266,13 @@ public class Metric implements Serializable {
 
   public Row toRow() {
     return RowFactory.create(
-        metricName, ts, value, lspId, circuitId, powerSign, JavaConverters.mapAsScalaMap(tags));
+        metricName,
+        ts,
+        value,
+        lspId,
+        circuitId,
+        powerSign,
+        JavaConverters.mapAsScalaMap(tags),
+        version);
   }
 }

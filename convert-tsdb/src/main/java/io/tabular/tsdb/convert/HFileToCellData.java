@@ -25,6 +25,13 @@ class HFileToCellData implements FlatMapFunction<String, CellData> {
     Configuration config = configHolder.getConfig();
     Path path = new Path(file);
     FileSystem fs = path.getFileSystem(config);
+
+    if (!fs.exists(path)) {
+      // File may have been deleted since the job started, e.g. if running against a live
+      // Hbase cluster and a compaction occurred
+      return Iterators.emptyIterator();
+    }
+
     HFile.Reader reader = HFile.createReader(fs, path, config);
     HFileScanner scanner = reader.getScanner(false, false);
 

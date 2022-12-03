@@ -1,7 +1,6 @@
 package io.tabular.tsdb.convert;
 
 import io.tabular.tsdb.convert.model.CellData;
-import java.util.Arrays;
 import java.util.Iterator;
 import lombok.SneakyThrows;
 import org.apache.hadoop.conf.Configuration;
@@ -42,7 +41,6 @@ class HFileToCellData implements FlatMapFunction<String, CellData> {
 
     return new Iterator<CellData>() {
       private boolean hasNext = true;
-      private CellData lastValue;
 
       @Override
       public boolean hasNext() {
@@ -53,15 +51,6 @@ class HFileToCellData implements FlatMapFunction<String, CellData> {
       @SneakyThrows
       public CellData next() {
         CellData value = new CellData(scanner.getCell(), file);
-
-        if (lastValue != null
-            && Arrays.equals(lastValue.getRowKey(), value.getRowKey())
-            && Arrays.equals(lastValue.getFamily(), value.getFamily())
-            && Arrays.equals(lastValue.getQualifier(), value.getQualifier())) {
-          throw new RuntimeException("Duplicate row key in file: " + file);
-        }
-
-        lastValue = value;
 
         hasNext = scanner.next();
 

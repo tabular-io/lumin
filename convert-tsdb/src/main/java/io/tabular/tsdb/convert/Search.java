@@ -23,7 +23,6 @@ public class Search implements Serializable {
 
   private static final int DEFAULT_ID_SIZE = 4;
 
-  private final SparkSession spark;
   private final JavaSparkContext sparkContext;
   private final SearchOptions searchOptions;
 
@@ -52,7 +51,6 @@ public class Search implements Serializable {
   }
 
   public Search(SparkSession spark, SearchOptions searchOptions) {
-    this.spark = spark;
     this.sparkContext = new JavaSparkContext(spark.sparkContext());
     this.searchOptions = searchOptions;
   }

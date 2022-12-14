@@ -11,7 +11,7 @@ Run using the `build/libs/convert-tsdb-all.jar` jar file:
 ```bash
 bin/spark-submit \
     --repositories https://tabular-repository-public.s3.amazonaws.com/releases \
-    --packages io.tabular:tabular-client-runtime:0.30.0,org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:0.14.1,org.apache.hadoop:hadoop-aws:3.3.2 \
+    --packages io.tabular:tabular-client-runtime:0.41.3,org.apache.iceberg:iceberg-spark-runtime-3.3_2.12:1.0.0,org.apache.hadoop:hadoop-aws:3.3.2 \
     --driver-cores 8 \
     --driver-memory 16g \
     --executor-cores 4 \

@@ -100,17 +100,21 @@ public class Convert implements Serializable {
   }
 
   private <T> JavaRDD<T> mapUidHFiles(String sourceDir, Function<CellData, T> fn) {
-    return createRDD(sourceDir, 0).map(fn).filter(Objects::nonNull);
+    return createRDD(sourceDir, 0, false).map(fn).filter(Objects::nonNull);
   }
 
   private <T> JavaRDD<T> flatMapMetricHFiles(String sourceDir, FlatMapFunction<CellData, T> fn) {
-    return createRDD(sourceDir, convertOptions.getLimitGb()).flatMap(fn).filter(Objects::nonNull);
+    return createRDD(sourceDir, convertOptions.getLimitGb(), false)
+        .flatMap(fn)
+        .filter(Objects::nonNull);
   }
 
-  private JavaRDD<CellData> createRDD(String sourceDir, int limitGb) {
+  private JavaRDD<CellData> createRDD(String sourceDir, int limitGb, boolean dateFilter) {
     List<String> files = Utilities.sourceFiles(sparkContext, sourceDir, limitGb);
     return sparkContext
         .parallelize(files, files.size())
-        .flatMap(new HFileToCellData(new ConfigHolder(sparkContext.hadoopConfiguration())));
+        .flatMap(
+            new HFileToCellData(dateFilter, new ConfigHolder(sparkContext.hadoopConfiguration())))
+        .filter(Objects::nonNull);
   }
 }

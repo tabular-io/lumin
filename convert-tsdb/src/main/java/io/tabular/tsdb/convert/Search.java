@@ -98,6 +98,6 @@ public class Search implements Serializable {
     List<String> files = Utilities.sourceFiles(sparkContext, sourceDir, 0);
     return sparkContext
         .parallelize(files, files.size())
-        .flatMap(new HFileToCellData(new ConfigHolder(sparkContext.hadoopConfiguration())));
+        .flatMap(new HFileToCellData(false, new ConfigHolder(sparkContext.hadoopConfiguration())));
   }
 }

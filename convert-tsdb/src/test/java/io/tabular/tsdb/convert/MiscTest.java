@@ -31,7 +31,8 @@ public class MiscTest {
         new JavaSparkContext(spark.sparkContext())
             .parallelize(Arrays.asList("file:/Users/bryan/Downloads/sample.hfile"))
             .flatMap(
-                new HFileToCellData(new ConfigHolder(spark.sparkContext().hadoopConfiguration())))
+                new HFileToCellData(
+                    false, new ConfigHolder(spark.sparkContext().hadoopConfiguration())))
             .flatMap(MiscTest::extractTimestamp);
 
     Timestamp minTs = rdd.min(new TsCompare());

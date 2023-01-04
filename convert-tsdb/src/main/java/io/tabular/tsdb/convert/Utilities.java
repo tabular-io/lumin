@@ -1,5 +1,7 @@
 package io.tabular.tsdb.convert;
 
+import static io.tabular.tsdb.convert.HFileToCellData.MIN_DATE;
+
 import com.google.common.collect.Lists;
 import java.io.IOException;
 import java.util.Comparator;
@@ -73,7 +75,12 @@ public class Utilities {
         String name = fileStatus.getPath().getName();
 
         // this will filter out non-HFiles with names such as .tableinfo, .regioninfo, xxxx.yyyy
-        if (fileStatus.isFile() && !name.contains(".") && !name.endsWith("_$folder$")) {
+        // also filters files last modified less than MIN_DATE, these should not have
+        // values with later timestamps (unless values have timestamps in the future)
+        if (fileStatus.isFile()
+            && !name.contains(".")
+            && !name.endsWith("_$folder$")
+            && fileStatus.getModificationTime() >= MIN_DATE) {
           fileList.add(fileStatus);
           size += fileStatus.getLen();
         }

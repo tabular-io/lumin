@@ -16,11 +16,12 @@ import org.sparkproject.guava.collect.Iterators;
 class HFileToCellData implements FlatMapFunction<String, CellData> {
 
   private static final int SALT_SIZE = 1;
-  private static final int ID_SIZE = 4; // current cluster
+  private static final int ID_SIZE = 4; // TODO: get config
   private static final int SKIP = SALT_SIZE + ID_SIZE;
   private static final int TS_SIZE = 4;
-  private static final long MIN_DATE = Instant.parse("2022-12-01T00:00:00.00Z").toEpochMilli();
-  private static final long MAX_DATE = Instant.parse("2022-12-15T00:00:00.00Z").toEpochMilli();
+
+  public static final long MIN_DATE = Instant.parse("2022-12-01T00:00:00.00Z").toEpochMilli();
+  public static final long MAX_DATE = Instant.parse("2022-12-15T00:00:00.00Z").toEpochMilli();
 
   private final ConfigHolder configHolder;
   private final boolean dateFilter;
